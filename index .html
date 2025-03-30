@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>锂电池电芯计算器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 15px;
+            background-color: #ffffff;
+            color: #1d1d1f;
+            line-height: 1.4;
+            overflow-x: hidden;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 0;
+            border-radius: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.003em;
+            text-align: center;
+        }
+        p {
+            font-size: 15px;
+            color: #86868b;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 20px;
+            background-color: #f5f5f7;
+            padding: 15px;
+            border-radius: 12px;
+        }
+        .input-section {
+            padding: 0 10px; /* 为输入区域添加左右内边距 */
+        }
+        .input-group h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1d1d1f;
+        }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px; /* 增加元素之间的间距 */
+            justify-content: space-between;
+        }
+        .input-item {
+            flex: 1;
+            min-width: 28%; /* 确保每个项不会太窄 */
+            margin: 0 5px; /* 添加左右外边距 */
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #1d1d1f;
+            font-size: 15px;
+        }
+        input[type="number"] {
+            display: block;
+            width: 90%; /* 从100%减少到90%，防止过宽导致重叠 */
+            padding: 8px; /* 从10px减小到8px */
+            margin: 5px auto; /* 从10px减小到5px */
+            border: 1px solid #d2d2d7;
+            border-radius: 8px;
+            font-size: 14px; /* 从16px减小到14px */
+            outline: none;
+            transition: all 0.3s ease;
+            box-sizing: border-box; /* 确保padding和border不会增加元素宽度 */
+        }
+        
+        input[type="number"]:focus {
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.2);
+        }
+        
+        input[type="number"].filled {
+            background-color: #f2f9ff; /* 浅蓝色背景表示已填写 */
+            border-color: #0071e3;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #0071e3;
+            color: white;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        button:hover {
+            background-color: #0077ed;
+            transform: scale(1.02);
+        }
+        #result {
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 12px;
+            background-color: #f5f5f7;
+            display: none;
+        }
+        #result h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1d1d1f;
+        }
+        #result-text {
+            font-size: 15px;
+            line-height: 1.4;
+        }
+        canvas {
+            border-radius: 12px;
+            margin: 15px auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            max-width: 100%;
+            display: block;
+        }
+        .saved-cell {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f5f5f7;
+            border-radius: 12px;
+        }
+        .saved-cell h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #1d1d1f;
+        }
+        #saved-dimensions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .saved-cell button {
+            background-color: #ffffff;
+            color: #0071e3;
+            border: 1px solid #d2d2d7;
+            margin: 0;
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 400;
+            flex: none;
+        }
+        .saved-cell button:hover {
+            background-color: #f5f5f7;
+            border-color: #0071e3;
+        }
+        #clear-button {
+            background-color: #86868b;
+        }
+        #clear-button:hover {
+            background-color: #6e6e73;
+        }
+        .views-container h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0 15px 0;
+            color: #1d1d1f;
+        }
+        @media (max-width: 768px) {
+            .input-container {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .input-section {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+            
+            input[type="number"] {
+                width: 100%;
+                margin: 8px 0;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 5px; /* 从8px减小到5px */
+            }
+            h1 {
+                font-size: 20px; /* 从22px减小到20px */
+                margin-bottom: 5px; /* 减小底部间距 */
+            }
+            p {
+                font-size: 13px; /* 从14px减小到13px */
+                margin-bottom: 10px; /* 从15px减小到10px */
+            }
+            .input-group {
+                padding: 8px; /* 从10px减小到8px */
+                margin-bottom: 10px; /* 从15px减小到10px */
+            }
+            .input-group h3 {
+                font-size: 15px; /* 从16px减小到15px */
+                margin-bottom: 5px; /* 从10px减小到5px */
+            }
+            .input-item {
+                margin: 1px 0; /* 从2px减小到1px */
+            }
+            .input-field {
+                margin-bottom: 2px; /* 从4px减小到2px */
+            }
+            
+            .input-field label {
+                width: 35px; /* 从40px减小到35px */
+                font-size: 12px; /* 从13px减小到12px */
+            }
+            
+            input[type="number"] {
+                padding: 4px; /* 从6px减小到4px */
+                font-size: 12px; /* 从13px减小到12px */
+                height: 28px; /* 从32px减小到28px */
+            }
+            .saved-cell {
+                margin: 10px 0; /* 从15px减小到10px */
+                padding: 8px; /* 从10px减小到8px */
+            }
+            .saved-cell h3 {
+                font-size: 15px; /* 从16px减小到15px */
+                margin-bottom: 5px; /* 从10px减小到5px */
+            }
+            .saved-cell button {
+                padding: 3px 6px; /* 减小按钮内边距 */
+                font-size: 12px; /* 从13px减小到12px */
+                margin: 1px; /* 从2px减小到1px */
+            }
+            .btn-group {
+                gap: 5px; /* 从10px减小到5px */
+                margin-bottom: 10px; /* 从20px减小到10px */
+            }
+            button {
+                padding: 6px 10px; /* 从8px 12px减小到6px 10px */
+                font-size: 13px; /* 从14px减小到13px */
+            }
+            /* 使电芯尺寸部分和电池外壳尺寸部分在同一行显示 */
+            .container {
+                display: flex;
+                flex-direction: column;
+            }
+            .input-group, .saved-cell {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            /* 让保存的电芯尺寸更紧凑 */
+            #saved-dimensions {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 3px;
+            }
+            .views-container {
+                margin-top: 5px;
+            }
+            .views-container h3 {
+                margin: 5px 0;
+                font-size: 15px;
+            }
+            /* 解决重复的媒体查询问题 */
+        }
+        .input-field {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .input-field label {
+            width: 45px;
+            margin-right: 5px;
+            margin-bottom: 0;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 8px; /* 从10px减小到8px */
+            }
+            h1 {
+                font-size: 22px; /* 从24px减小到22px */
+            }
+            p {
+                font-size: 14px; /* 减小说明文字 */
+                margin-bottom: 15px; /* 减小底部间距 */
+            }
+            .input-group {
+                padding: 10px; /* 从12px减小到10px */
+                margin-bottom: 15px; /* 从20px减小到15px */
+            }
+            .input-group h3 {
+                font-size: 16px; /* 从18px减小到16px */
+                margin-bottom: 10px; /* 从15px减小到10px */
+            }
+            .flex-row {
+                flex-direction: column; /* 在小屏幕上改为垂直布局 */
+                gap: 5px; /* 从10px减小到5px */
+            }
+            .input-item {
+                min-width: 100%; /* 在垂直布局中占满宽度 */
+                margin: 2px 0; /* 减小间距 */
+            }
+            .input-field {
+                margin-bottom: 4px;
+            }
+            
+            .input-field label {
+                width: 40px;
+                font-size: 13px;
+            }
+            
+            input[type="number"] {
+                flex-grow: 1;
+                width: auto; /* 让输入框自动适应宽度 */
+                padding: 6px; /* 在手机端进一步减小内边距 */
+                font-size: 13px; /* 在手机端进一步减小字体 */
+                height: 32px; /* 设置固定高度使输入框更小 */
+                margin: 0; /* 移除上下外边距 */
+            }
+            .input-group label {
+                margin-bottom: 4px; /* 从8px减小到4px */
+                font-size: 14px; /* 减小标签字体 */
+            }
+            button {
+                padding: 8px 12px; /* 减小按钮内边距 */
+                font-size: 14px; /* 减小按钮字体 */
+            }
+            
+            /* 添加新的样式以减小保存电芯尺寸区域 */
+            .saved-cell {
+                margin: 15px 0; /* 从20px减小到15px */
+                padding: 10px; /* 从15px减小到10px */
+            }
+            .saved-cell h3 {
+                font-size: 16px; /* 从18px减小到16px */
+                margin-bottom: 10px; /* 从15px减小到10px */
+            }
+            .saved-cell button {
+                padding: 4px 8px; /* 减小按钮内边距 */
+                font-size: 13px; /* 减小按钮字体 */
+                margin: 2px; /* 减少按钮间距 */
+            }
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0 5px;
+            }
+            table {
+                display: table; /* 改为table而不是block，避免横向滚动 */
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+                table-layout: fixed; /* 强制使用固定布局，适应屏幕 */
+                font-size: 12px; /* 减小字体大小 */
+            }
+            #digital-info-container {
+                padding: 12px 5px; /* 减少内边距 */
+                width: auto;
+            }
+            #digital-info-container table {
+                font-size: 12px;
+            }
+            #digital-info-container table th,
+            #digital-info-container table td {
+                padding: 6px 2px; /* 减少单元格内边距 */
+                word-break: keep-all; /* 防止文字换行 */
+                white-space: nowrap; /* 防止文字换行 */
+            }
+            .views-container {
+                transform: scale(0.95);
+                transform-origin: left top;
+            }
+            #3d-container {
+                height: 350px !important; /* 增加手机端3D视图高度 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>锂电池电芯计算器</h1>
+        <p>请输入电池外壳和电芯的尺寸（单位：厘米）</p>
+        
+        <div class="input-group">
+            <h3>电池外壳尺寸：</h3>
+            <div class="flex-row">
+                <div class="input-item">
+                    <div class="input-field">
+                        <label>长：</label>
+                        <input type="number" id="case-length" min="0" step="0.1" onkeypress="handleEnter(event, 'case-width')">
+                    </div>
+                </div>
+                <div class="input-item">
+                    <div class="input-field">
+                        <label>宽：</label>
+                        <input type="number" id="case-width" min="0" step="0.1" onkeypress="handleEnter(event, 'case-height')">
+                    </div>
+                </div>
+                <div class="input-item">
+                    <div class="input-field">
+                        <label>高：</label>
+                        <input type="number" id="case-height" min="0" step="0.1" onkeypress="handleEnter(event, 'cell-length')">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="saved-cell">
+            <h3>已保存的电芯尺寸：</h3>
+            <div id="saved-dimensions"></div>
+        </div>
+
+        <div class="input-group">
+            <h3>电芯尺寸：</h3>
+            <div class="flex-row">
+                <div class="input-item">
+                    <div class="input-field">
+                        <label>长：</label>
+                        <input type="number" id="cell-length" min="0" step="0.1" onkeypress="handleEnter(event, 'cell-width')" onchange="saveCellDimensions()">
+                    </div>
+                </div>
+                <div class="input-item">
+                    <div class="input-field">
+                        <label>宽：</label>
+                        <input type="number" id="cell-width" min="0" step="0.1" onkeypress="handleEnter(event, 'cell-height')" onchange="saveCellDimensions()">
+                    </div>
+                </div>
+                <div class="input-item">
+                    <div class="input-field">
+                        <label>高：</label>
+                        <input type="number" id="cell-height" min="0" step="0.1" onkeypress="handleEnter(event, 'calculate-button')" onchange="saveCellDimensions()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button id="calculate-button" onclick="calculate()">计算</button>
+            <button id="clear-button" onclick="clearInputs()">清除</button>
+        </div>
+
+        <div id="result">
+            <h3>计算结果：</h3>
+            <p id="result-text"></p>
+        </div>
+
+        <div class="views-container">
+            <h3>3D视图：</h3>
+            <canvas id="diagram" width="600" height="650" style="display: none;"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // 定义全局变量
+        const isMobile = window.innerWidth <= 600;
+        let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        
+        // 页面加载时加载保存的电芯尺寸
+        window.onload = function() {
+            loadSavedDimensions();
+        };
+
+        // 处理回车键
+        function handleEnter(event, nextElementId) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                if (nextElementId === 'calculate-button') {
+                    calculate();
+                } else {
+                    document.getElementById(nextElementId).focus();
+                }
+            }
+        }
+
+        // 保存电芯尺寸
+        function saveCellDimensions() {
+            const length = document.getElementById('cell-length').value;
+            const width = document.getElementById('cell-width').value;
+            const height = document.getElementById('cell-height').value;
+            
+            if (length && width && height) {
+                const dimensions = {
+                    length: length,
+                    width: width,
+                    height: height,
+                    timestamp: new Date().getTime()
+                };
+
+                let saved = JSON.parse(localStorage.getItem('savedCellDimensions') || '[]');
+                // 最多保存5组数据
+                saved = [dimensions, ...saved.slice(0, 4)];
+                localStorage.setItem('savedCellDimensions', JSON.stringify(saved));
+                
+                loadSavedDimensions();
+            }
+        }
+
+        // 加载保存的电芯尺寸
+        function loadSavedDimensions() {
+            const saved = JSON.parse(localStorage.getItem('savedCellDimensions') || '[]');
+            const container = document.getElementById('saved-dimensions');
+            container.innerHTML = '';
+
+            saved.forEach((dim, index) => {
+                const button = document.createElement('button');
+                button.textContent = `${dim.length} × ${dim.width} × ${dim.height} 厘米`;
+                button.onclick = () => loadDimension(dim);
+                container.appendChild(button);
+            });
+        }
+
+        // 加载选中的电芯尺寸
+        function loadDimension(dim) {
+            document.getElementById('cell-length').value = dim.length;
+            document.getElementById('cell-width').value = dim.width;
+            document.getElementById('cell-height').value = dim.height;
+        }
+
+        function calculate() {
+            try {
+                console.log('开始计算...');
+                // 获取输入值
+                const caseLength = Number(document.getElementById('case-length').value);
+                const caseWidth = Number(document.getElementById('case-width').value);
+                const caseHeight = Number(document.getElementById('case-height').value);
+                
+                const cellLength = Number(document.getElementById('cell-length').value);
+                const cellWidth = Number(document.getElementById('cell-width').value);
+                const cellHeight = Number(document.getElementById('cell-height').value);
+
+                // 检查输入是否有效
+                if (!caseLength || !caseWidth || !caseHeight || !cellLength || !cellWidth || !cellHeight) {
+                    alert('请填写所有尺寸！');
+                    return;
+                }
+                
+                // 计算电芯的6种可能摆放方向
+                // 每种方向都用 [x轴方向尺寸, y轴方向尺寸, z轴方向尺寸] 表示电芯的放置方式
+                const orientations = [
+                    {
+                        dims: [cellLength, cellWidth, cellHeight],
+                        name: "长-宽-高"
+                    },
+                    {
+                        dims: [cellLength, cellHeight, cellWidth],
+                        name: "长-高-宽"
+                    },
+                    {
+                        dims: [cellWidth, cellLength, cellHeight],
+                        name: "宽-长-高"
+                    },
+                    {
+                        dims: [cellWidth, cellHeight, cellLength],
+                        name: "宽-高-长"
+                    },
+                    {
+                        dims: [cellHeight, cellLength, cellWidth],
+                        name: "高-长-宽"
+                    },
+                    {
+                        dims: [cellHeight, cellWidth, cellLength],
+                        name: "高-宽-长"
+                    }
+                ];
+                
+                // 解决最多电芯问题的新方法：允许混合摆放
+                // 1. 首先找出最优的单一摆放方案作为基准
+                let bestSingleArrangement = findBestSingleArrangement(caseLength, caseWidth, caseHeight, orientations);
+                
+                // 2. 尝试混合摆放方案
+                let bestMixedArrangement = findBestMixedArrangement(caseLength, caseWidth, caseHeight, orientations);
+                
+                // 3. 对比两种方案，选择电芯数量更多的
+                let finalArrangement;
+                let isMixed = false;
+                
+                if (bestMixedArrangement.cellCount > bestSingleArrangement.cellCount) {
+                    finalArrangement = bestMixedArrangement;
+                    isMixed = true;
+                } else {
+                    finalArrangement = bestSingleArrangement;
+                }
+                
+                // 显示结果
+                const resultDiv = document.getElementById('result');
+                const resultText = document.getElementById('result-text');
+                resultDiv.style.display = 'block';
+                
+                // 如果是混合摆放，展示不同
+                if (isMixed) {
+                    let orientationText = '';
+                    let totalCellCount = 0;
+                    
+                    // 为每个区域创建详细信息
+                    finalArrangement.arrangements.forEach((arr, index) => {
+                        totalCellCount += arr.count;
+                        const orientationName = arr.orientation.name;
+                        const dimX = arr.orientation.dims[0];
+                        const dimY = arr.orientation.dims[1];
+                        const dimZ = arr.orientation.dims[2];
+                        
+                        // 计算区域尺寸
+                        const regionWidth = arr.region.x[1] - arr.region.x[0];
+                        const regionHeight = arr.region.z[1] - arr.region.z[0];
+                        const regionDepth = arr.region.y[1] - arr.region.y[0];
+                        
+                        // 创建区域信息
+                        orientationText += `
+                            <div style="margin-bottom: 12px; padding: 10px; background-color: ${index % 2 === 0 ? '#f0f7ff' : '#fff4f0'}; border-radius: 8px;">
+                                <div style="font-weight: 600; margin-bottom: 5px; color: #0071e3;">区域 ${index + 1} (${orientationName}):</div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                    <div style="flex: 1; min-width: 180px;">
+                                        <div>电芯数量: <strong>${arr.count}</strong> 块 (${arr.countX}×${arr.countY}×${arr.countZ})</div>
+                                        <div>电芯尺寸: ${dimX}×${dimY}×${dimZ} cm</div>
+                                    </div>
+                                    <div style="flex: 1; min-width: 180px;">
+                                        <div>区域尺寸: ${regionWidth.toFixed(2)}×${regionDepth.toFixed(2)}×${regionHeight.toFixed(2)} cm</div>
+                                        <div>位置: X(${arr.region.x[0].toFixed(1)}-${arr.region.x[1].toFixed(1)}) Y(${arr.region.y[0].toFixed(1)}-${arr.region.y[1].toFixed(1)}) Z(${arr.region.z[0].toFixed(1)}-${arr.region.z[1].toFixed(1)})</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    // 计算空间利用率
+                    const totalVolume = caseLength * caseWidth * caseHeight;
+                    let usedVolume = 0;
+                    finalArrangement.arrangements.forEach(arr => {
+                        const [dimX, dimY, dimZ] = arr.orientation.dims;
+                        usedVolume += arr.count * dimX * dimY * dimZ;
+                    });
+                    const utilization = (usedVolume / totalVolume * 100).toFixed(1);
+                    
+                    resultText.innerHTML = `
+                        <div style="margin-bottom: 15px; padding: 15px; background-color: #e3f2fd; border-radius: 10px;">
+                            <div style="font-size: 1.2em; font-weight: 600; margin-bottom: 10px;">最优混合摆放方案</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <div style="margin-bottom: 5px;"><span style="color: #0071e3;">电芯总数:</span> <strong style="font-size: 1.1em;">${totalCellCount}</strong> 块</div>
+                                    <div><span style="color: #0071e3;">空间利用率:</span> ${utilization}%</div>
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <div style="margin-bottom: 5px;"><span style="color: #0071e3;">外壳尺寸:</span> ${caseLength}×${caseWidth}×${caseHeight} cm</div>
+                                    <div><span style="color: #0071e3;">区域数量:</span> ${finalArrangement.arrangements.length} 个区域</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-weight: 600; margin-bottom: 10px;">区域详情:</div>
+                            ${orientationText}
+                        </div>
+                        <div style="font-size: 0.9em; color: #666; margin-top: 10px;">
+                            <p>混合摆放方案对电芯进行分区域排列，每个区域采用不同的电芯摆放方向，以最大化利用可用空间。</p>
+                        </div>
+                    `;
+                } else {
+                    // 使用原有的单一方向显示方式
+                    const arrangementDisplay = finalArrangement.arrangement.name;
+                    
+                    resultText.innerHTML = `
+                        <div style="margin-bottom: 10px;">最多可以放置 <strong style="font-size: 1.2em;">${finalArrangement.cellCount}</strong> 块电芯</div>
+                        <div style="margin-bottom: 10px;">摆放方式: <strong>${arrangementDisplay}</strong> (${finalArrangement.countX} × ${finalArrangement.countY} × ${finalArrangement.countZ})</div>
+                        <div style="font-size: 0.9em; color: #666;">
+                            <p>单一方向摆放是最优解，无需混合摆放。请查看下方的3D视图了解详细摆放方式。</p>
+                        </div>
+                    `;
+                }
+
+                console.log('开始绘制示意图...');
+                
+                // 绘制示意图，对于混合摆放可能需要特殊处理
+                try {
+                    if (isMixed) {
+                        console.log('绘制混合摆放示意图');
+                        drawMixedDiagram(finalArrangement, caseLength, caseWidth, caseHeight, cellLength, cellWidth, cellHeight);
+                    } else {
+                        console.log('绘制单一摆放示意图');
+                        drawDiagram(
+                            finalArrangement.countX, 
+                            finalArrangement.countY, 
+                            finalArrangement.countZ, 
+                            finalArrangement.arrangement.dims[0],
+                            finalArrangement.arrangement.dims[1],
+                            finalArrangement.arrangement.dims[2],
+                            finalArrangement.arrangement.name
+                        );
+                    }
+                    console.log('示意图绘制完成');
+                } catch (diagramError) {
+                    console.error('绘制示意图时出错:', diagramError);
+                    alert('绘制示意图时出错: ' + diagramError.message);
+                }
+            } catch (e) {
+                console.error('计算时出错:', e);
+                alert('计算时出错: ' + e.message);
+            }
+        }
+
+        // 寻找最佳单一方向摆放方案
+        function findBestSingleArrangement(caseLength, caseWidth, caseHeight, orientations) {
+            let optimalArrangement = null;
+            let maxCellCount = 0;
+            let maxUtilization = 0;
+            
+            orientations.forEach(orientation => {
+                const [dimX, dimY, dimZ] = orientation.dims;
+                
+                // 计算每个方向最多能放置的数量
+                const countX = Math.floor(caseLength / dimX);
+                const countY = Math.floor(caseWidth / dimY);
+                const countZ = Math.floor(caseHeight / dimZ);
+                
+                // 计算总电芯数和空间利用率
+                const cellCount = countX * countY * countZ;
+                const cellVolume = dimX * dimY * dimZ;
+                const volumeUsed = cellCount * cellVolume;
+                const totalVolume = caseLength * caseWidth * caseHeight;
+                const utilization = volumeUsed / totalVolume;
+                
+                // 如果当前方式比最优方式更好，则更新最优方式
+                if (cellCount > maxCellCount || (cellCount === maxCellCount && utilization > maxUtilization)) {
+                    maxCellCount = cellCount;
+                    maxUtilization = utilization;
+                    optimalArrangement = {
+                        arrangement: orientation,
+                        countX: countX,
+                        countY: countY,
+                        countZ: countZ,
+                        cellCount: cellCount,
+                        utilization: utilization,
+                        remainderX: caseLength - countX * dimX,
+                        remainderY: caseWidth - countY * dimY,
+                        remainderZ: caseHeight - countZ * dimZ,
+                        volumeUsed: volumeUsed,
+                        volumeRemaining: totalVolume - volumeUsed
+                    };
+                }
+            });
+            
+            return optimalArrangement;
+        }
+
+        // 寻找最佳混合摆放方案
+        function findBestMixedArrangement(caseLength, caseWidth, caseHeight, orientations) {
+            // 先找到最佳的单一方向作为基准
+            const baseSolution = findBestSingleArrangement(caseLength, caseWidth, caseHeight, orientations);
+            let bestMixedCellCount = baseSolution.cellCount;
+            let bestMixedArrangement = {
+                cellCount: baseSolution.cellCount,
+                remainderX: baseSolution.remainderX,
+                remainderY: baseSolution.remainderY,
+                remainderZ: baseSolution.remainderZ,
+                arrangements: [
+                    {
+                        orientation: baseSolution.arrangement,
+                        count: baseSolution.cellCount,
+                        countX: baseSolution.countX,
+                        countY: baseSolution.countY,
+                        countZ: baseSolution.countZ
+                    }
+                ]
+            };
+            
+            // 递归函数：尝试在给定空间中找到最优的摆放方式
+            function findBestArrangementInSpace(spaceLength, spaceWidth, spaceHeight, depth = 0, maxDepth = 4) {
+                // 防止递归过深
+                if (depth >= maxDepth) return { count: 0, arrangements: [] };
+                
+                // 如果空间太小，无法放置任何电芯，直接返回
+                const minDimension = Math.min(...orientations.map(o => Math.min(...o.dims)));
+                if (spaceLength < minDimension && spaceWidth < minDimension && spaceHeight < minDimension) {
+                    return { count: 0, arrangements: [] };
+                }
+                
+                let bestCount = 0;
+                let bestArrangements = [];
+                
+                // 先尝试用单一方向填满整个空间
+                const singleArrangement = findBestSingleArrangement(spaceLength, spaceWidth, spaceHeight, orientations);
+                if (singleArrangement) {
+                    bestCount = singleArrangement.cellCount;
+                    bestArrangements = [{
+                        orientation: singleArrangement.arrangement,
+                        count: singleArrangement.cellCount,
+                        countX: singleArrangement.countX,
+                        countY: singleArrangement.countY,
+                        countZ: singleArrangement.countZ,
+                        region: {
+                            x: [0, spaceLength],
+                            y: [0, spaceWidth],
+                            z: [0, spaceHeight]
+                        }
+                    }];
+                    
+                    // 检查单一方向是否完全利用了空间
+                    const [dimX, dimY, dimZ] = singleArrangement.arrangement.dims;
+                    const usedX = singleArrangement.countX * dimX;
+                    const usedY = singleArrangement.countY * dimY;
+                    const usedZ = singleArrangement.countZ * dimZ;
+                    
+                    // 如果空间利用率已经达到95%以上，直接返回当前方案
+                    const volumeUsed = usedX * usedY * usedZ;
+                    const totalVolume = spaceLength * spaceWidth * spaceHeight;
+                    if (volumeUsed / totalVolume > 0.95) {
+                        return { count: bestCount, arrangements: bestArrangements };
+                    }
+                }
+                
+                // 然后尝试分割空间 - 增强版本：考虑电芯旋转
+                
+                // 遍历所有可能的主空间电芯摆放方式
+                for (let mainOrientation of orientations) {
+                    const [mainDimX, mainDimY, mainDimZ] = mainOrientation.dims;
+                    
+                    // X方向分割
+                    const mainCountX = Math.floor(spaceLength / mainDimX);
+                    if (mainCountX > 0) {
+                        const mainUsedX = mainCountX * mainDimX;
+                        const mainCountY = Math.floor(spaceWidth / mainDimY);
+                        const mainCountZ = Math.floor(spaceHeight / mainDimZ);
+                        const mainCount = mainCountX * mainCountY * mainCountZ;
+                        
+                        const remainingX = spaceLength - mainUsedX;
+                        
+                        // 只有当剩余空间足够大，值得进一步处理时才继续
+                        if (remainingX > 0 && remainingX >= minDimension) {
+                            // 递归寻找剩余空间的最佳摆放，并考虑所有可能的电芯旋转摆放
+                            const remainingResult = findBestArrangementInSpace(remainingX, spaceWidth, spaceHeight, depth + 1, maxDepth);
+                            
+                            if (mainCount + remainingResult.count > bestCount) {
+                                bestCount = mainCount + remainingResult.count;
+                                bestArrangements = [{
+                                    orientation: mainOrientation,
+                                    count: mainCount,
+                                    countX: mainCountX,
+                                    countY: mainCountY,
+                                    countZ: mainCountZ,
+                                    region: {
+                                        x: [0, mainUsedX],
+                                        y: [0, spaceWidth],
+                                        z: [0, spaceHeight]
+                                    }
+                                }, ...remainingResult.arrangements.map(arr => {
+                                    // 调整区域坐标
+                                    const region = {...arr.region};
+                                    region.x = [region.x[0] + mainUsedX, region.x[1] + mainUsedX];
+                                    return {...arr, region};
+                                })];
+                        }
+                    }
+                }
+                
+                // Y方向分割
+                    const mainCountY = Math.floor(spaceWidth / mainDimY);
+                    if (mainCountY > 0) {
+                        const mainUsedY = mainCountY * mainDimY;
+                        const mainCountX = Math.floor(spaceLength / mainDimX);
+                        const mainCountZ = Math.floor(spaceHeight / mainDimZ);
+                        const mainCount = mainCountX * mainCountY * mainCountZ;
+                        
+                        const remainingY = spaceWidth - mainUsedY;
+                        
+                        if (remainingY > 0 && remainingY >= minDimension) {
+                            // 递归寻找剩余空间的最佳摆放
+                            const remainingResult = findBestArrangementInSpace(spaceLength, remainingY, spaceHeight, depth + 1, maxDepth);
+                            
+                            if (mainCount + remainingResult.count > bestCount) {
+                                bestCount = mainCount + remainingResult.count;
+                                bestArrangements = [{
+                                    orientation: mainOrientation,
+                                    count: mainCount,
+                                    countX: mainCountX,
+                                    countY: mainCountY,
+                                    countZ: mainCountZ,
+                                    region: {
+                                        x: [0, spaceLength],
+                                        y: [0, mainUsedY],
+                                        z: [0, spaceHeight]
+                                    }
+                                }, ...remainingResult.arrangements.map(arr => {
+                                    // 调整区域坐标
+                                    const region = {...arr.region};
+                                    region.y = [region.y[0] + mainUsedY, region.y[1] + mainUsedY];
+                                    return {...arr, region};
+                                })];
+                        }
+                    }
+                }
+                
+                // Z方向分割
+                    const mainCountZ = Math.floor(spaceHeight / mainDimZ);
+                    if (mainCountZ > 0) {
+                        const mainUsedZ = mainCountZ * mainDimZ;
+                        const mainCountX = Math.floor(spaceLength / mainDimX);
+                        const mainCountY = Math.floor(spaceWidth / mainDimY);
+                        const mainCount = mainCountX * mainCountY * mainCountZ;
+                        
+                        const remainingZ = spaceHeight - mainUsedZ;
+                        
+                        if (remainingZ > 0 && remainingZ >= minDimension) {
+                            // 递归寻找剩余空间的最佳摆放
+                            const remainingResult = findBestArrangementInSpace(spaceLength, spaceWidth, remainingZ, depth + 1, maxDepth);
+                            
+                            if (mainCount + remainingResult.count > bestCount) {
+                                bestCount = mainCount + remainingResult.count;
+                                bestArrangements = [{
+                                    orientation: mainOrientation,
+                                    count: mainCount,
+                                    countX: mainCountX,
+                                    countY: mainCountY,
+                                    countZ: mainCountZ,
+                                    region: {
+                                        x: [0, spaceLength],
+                                        y: [0, spaceWidth],
+                                        z: [0, mainUsedZ]
+                                    }
+                                }, ...remainingResult.arrangements.map(arr => {
+                                    // 调整区域坐标
+                                    const region = {...arr.region};
+                                    region.z = [region.z[0] + mainUsedZ, region.z[1] + mainUsedZ];
+                                    return {...arr, region};
+                                })];
+                            }
+                        }
+                    }
+                    
+                    // 复合分割：考虑同时在X和Y方向分割，形成L形摆放
+                    // 此策略适用于主区域用完后，有两个方向都有剩余空间的情况
+                    if (mainCountX > 0 && mainCountY > 0) {
+                        const mainUsedX = mainCountX * mainDimX;
+                        const mainUsedY = mainCountY * mainDimY;
+                        const mainCount = mainCountX * mainCountY * mainCountZ;
+                        
+                        const remainingX = spaceLength - mainUsedX;
+                        const remainingY = spaceWidth - mainUsedY;
+                        
+                        // 只有当两个方向都有足够的剩余空间时才继续
+                        if (remainingX > 0 && remainingY > 0 && 
+                            (remainingX >= minDimension || remainingY >= minDimension)) {
+                            
+                            // 尝试右侧区域 (剩余X, 全Y)
+                            const rightResult = findBestArrangementInSpace(remainingX, spaceWidth, spaceHeight, depth + 1, maxDepth);
+                            
+                            // 尝试下方区域 (全X, 剩余Y)
+                            const bottomResult = findBestArrangementInSpace(spaceLength, remainingY, spaceHeight, depth + 1, maxDepth);
+                            
+                            // 选择右侧或下方更好的方案
+                            if (rightResult.count > bottomResult.count) {
+                                if (mainCount + rightResult.count > bestCount) {
+                                    bestCount = mainCount + rightResult.count;
+                                    bestArrangements = [{
+                                        orientation: mainOrientation,
+                                        count: mainCount,
+                                        countX: mainCountX,
+                                        countY: mainCountY,
+                                        countZ: mainCountZ,
+                                        region: {
+                                            x: [0, mainUsedX],
+                                            y: [0, spaceWidth],
+                                            z: [0, spaceHeight]
+                                        }
+                                    }, ...rightResult.arrangements.map(arr => {
+                                        // 调整区域坐标
+                                        const region = {...arr.region};
+                                        region.x = [region.x[0] + mainUsedX, region.x[1] + mainUsedX];
+                                        return {...arr, region};
+                                    })];
+                                }
+                            } else {
+                                if (mainCount + bottomResult.count > bestCount) {
+                                    bestCount = mainCount + bottomResult.count;
+                                    bestArrangements = [{
+                                        orientation: mainOrientation,
+                                        count: mainCount,
+                                        countX: mainCountX,
+                                        countY: mainCountY,
+                                        countZ: mainCountZ,
+                                        region: {
+                                            x: [0, spaceLength],
+                                            y: [0, mainUsedY],
+                                            z: [0, spaceHeight]
+                                        }
+                                    }, ...bottomResult.arrangements.map(arr => {
+                                        // 调整区域坐标
+                                        const region = {...arr.region};
+                                        region.y = [region.y[0] + mainUsedY, region.y[1] + mainUsedY];
+                                        return {...arr, region};
+                                    })];
+                                }
+                            }
+                            
+                            // 尝试L形区域划分：主区域 + 右侧区域 + 剩余的L形区域
+                            // 这是最复杂的情况，需要考虑三个区域
+                            const rightSpace = {
+                                length: remainingX,
+                                width: mainUsedY,
+                                height: spaceHeight
+                            };
+                            const bottomSpace = {
+                                length: mainUsedX,
+                                width: remainingY,
+                                height: spaceHeight
+                            };
+                            const cornerSpace = {
+                                length: remainingX,
+                                width: remainingY,
+                                height: spaceHeight
+                            };
+                            
+                            // 尝试右侧矩形区域
+                            const rightSectionResult = findBestArrangementInSpace(
+                                rightSpace.length, rightSpace.width, rightSpace.height, 
+                                depth + 1, maxDepth
+                            );
+                            
+                            // 尝试底部矩形区域
+                            const bottomSectionResult = findBestArrangementInSpace(
+                                bottomSpace.length, bottomSpace.width, bottomSpace.height, 
+                                depth + 1, maxDepth
+                            );
+                            
+                            // 尝试角落矩形区域
+                            const cornerSectionResult = findBestArrangementInSpace(
+                                cornerSpace.length, cornerSpace.width, cornerSpace.height, 
+                                depth + 1, maxDepth
+                            );
+                            
+                            // 计算总电芯数
+                            const totalLShapeCount = mainCount + rightSectionResult.count + 
+                                                   bottomSectionResult.count + cornerSectionResult.count;
+                            
+                            if (totalLShapeCount > bestCount) {
+                                bestCount = totalLShapeCount;
+                                bestArrangements = [
+                                    // 主区域
+                                    {
+                                        orientation: mainOrientation,
+                                        count: mainCount,
+                                        countX: mainCountX,
+                                        countY: mainCountY,
+                                        countZ: mainCountZ,
+                                        region: {
+                                            x: [0, mainUsedX],
+                                            y: [0, mainUsedY],
+                                            z: [0, spaceHeight]
+                                        }
+                                    },
+                                    // 右侧区域
+                                    ...rightSectionResult.arrangements.map(arr => {
+                                        const region = {...arr.region};
+                                        region.x = [region.x[0] + mainUsedX, region.x[1] + mainUsedX];
+                                        return {...arr, region};
+                                    }),
+                                    // 底部区域
+                                    ...bottomSectionResult.arrangements.map(arr => {
+                                        const region = {...arr.region};
+                                        region.y = [region.y[0] + mainUsedY, region.y[1] + mainUsedY];
+                                        return {...arr, region};
+                                    }),
+                                    // 角落区域
+                                    ...cornerSectionResult.arrangements.map(arr => {
+                                        const region = {...arr.region};
+                                        region.x = [region.x[0] + mainUsedX, region.x[1] + mainUsedX];
+                                        region.y = [region.y[0] + mainUsedY, region.y[1] + mainUsedY];
+                                        return {...arr, region};
+                                    })
+                                ];
+                            }
+                        }
+                    }
+                }
+                
+                return { count: bestCount, arrangements: bestArrangements };
+            }
+            
+            // 使用递归方法寻找最佳混合排列
+            const recursiveResult = findBestArrangementInSpace(caseLength, caseWidth, caseHeight);
+            
+            // 如果递归方法找到的方案比之前的方案更好，则更新
+            if (recursiveResult.count > bestMixedCellCount) {
+                bestMixedCellCount = recursiveResult.count;
+                
+                // 计算剩余空间 - 这是一个近似值，因为复杂混合摆放的剩余空间计算较复杂
+                const totalVolume = caseLength * caseWidth * caseHeight;
+                let usedVolume = 0;
+                
+                recursiveResult.arrangements.forEach(arr => {
+                    const [dimX, dimY, dimZ] = arr.orientation.dims;
+                    usedVolume += arr.count * dimX * dimY * dimZ;
+                });
+                
+                bestMixedArrangement = {
+                    cellCount: recursiveResult.count,
+                    remainderVolume: totalVolume - usedVolume,
+                    utilization: (usedVolume / totalVolume * 100).toFixed(2) + '%',
+                    arrangements: recursiveResult.arrangements
+                };
+            }
+            
+            // 保留原有的按轴线分区策略代码，确保向后兼容
+            // 尝试分区域策略 - 先尝试沿X轴分成两个区域
+            for (let orientation1 of orientations) {
+                const [dimX1, dimY1, dimZ1] = orientation1.dims;
+                const countX1 = Math.floor(caseLength / dimX1);
+                const countY1 = Math.floor(caseWidth / dimY1);
+                const countZ1 = Math.floor(caseHeight / dimZ1);
+                const usedX1 = countX1 * dimX1;
+                
+                // 如果X方向仍有剩余空间，尝试用另一种方向填充
+                if (usedX1 < caseLength) {
+                    const remainingX = caseLength - usedX1;
+                    
+                    for (let orientation2 of orientations) {
+                        const [dimX2, dimY2, dimZ2] = orientation2.dims;
+                        const countX2 = Math.floor(remainingX / dimX2);
+                        
+                        // 确保第二个方向有足够空间放置至少一个电芯
+                        if (countX2 > 0) {
+                            const countY2 = Math.floor(caseWidth / dimY2);
+                            const countZ2 = Math.floor(caseHeight / dimZ2);
+                            
+                            const count1 = countX1 * countY1 * countZ1;
+                            const count2 = countX2 * countY2 * countZ2;
+                            const totalCount = count1 + count2;
+                            
+                            if (totalCount > bestMixedCellCount) {
+                                bestMixedCellCount = totalCount;
+                                
+                                // 计算剩余空间
+                                const usedX2 = countX2 * dimX2;
+                                const totalUsedX = usedX1 + usedX2;
+                                const remainderX = caseLength - totalUsedX;
+                                
+                                const usedY1 = countY1 * dimY1;
+                                const remainderY1 = caseWidth - usedY1;
+                                
+                                const usedZ1 = countZ1 * dimZ1;
+                                const remainderZ1 = caseHeight - usedZ1;
+                                
+                                bestMixedArrangement = {
+                                    cellCount: totalCount,
+                                    remainderX: remainderX,
+                                    remainderY: Math.min(remainderY1, caseWidth - countY2 * dimY2),
+                                    remainderZ: Math.min(remainderZ1, caseHeight - countZ2 * dimZ2),
+                                    arrangements: [
+                                        {
+                                            orientation: orientation1,
+                                            count: count1,
+                                            countX: countX1,
+                                            countY: countY1,
+                                            countZ: countZ1,
+                                            region: {
+                                                x: [0, usedX1],
+                                                y: [0, caseWidth],
+                                                z: [0, caseHeight]
+                                            }
+                                        },
+                                        {
+                                            orientation: orientation2,
+                                            count: count2,
+                                            countX: countX2,
+                                            countY: countY2,
+                                            countZ: countZ2,
+                                            region: {
+                                                x: [usedX1, usedX1 + usedX2],
+                                                y: [0, caseWidth],
+                                                z: [0, caseHeight]
+                                            }
+                                        }
+                                    ]
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 尝试沿Y轴分成两个区域
+            for (let orientation1 of orientations) {
+                const [dimX1, dimY1, dimZ1] = orientation1.dims;
+                const countX1 = Math.floor(caseLength / dimX1);
+                const countY1 = Math.floor(caseWidth / dimY1);
+                const countZ1 = Math.floor(caseHeight / dimZ1);
+                const usedY1 = countY1 * dimY1;
+                
+                // 如果Y方向仍有剩余空间，尝试用另一种方向填充
+                if (usedY1 < caseWidth) {
+                    const remainingY = caseWidth - usedY1;
+                    
+                    for (let orientation2 of orientations) {
+                        const [dimX2, dimY2, dimZ2] = orientation2.dims;
+                        const countY2 = Math.floor(remainingY / dimY2);
+                        
+                        // 确保第二个方向有足够空间放置至少一个电芯
+                        if (countY2 > 0) {
+                            const countX2 = Math.floor(caseLength / dimX2);
+                            const countZ2 = Math.floor(caseHeight / dimZ2);
+                            
+                            const count1 = countX1 * countY1 * countZ1;
+                            const count2 = countX2 * countY2 * countZ2;
+                            const totalCount = count1 + count2;
+                            
+                            if (totalCount > bestMixedCellCount) {
+                                bestMixedCellCount = totalCount;
+                                
+                                // 计算剩余空间
+                                const usedY2 = countY2 * dimY2;
+                                const totalUsedY = usedY1 + usedY2;
+                                const remainderY = caseWidth - totalUsedY;
+                                
+                                const usedX1 = countX1 * dimX1;
+                                const remainderX1 = caseLength - usedX1;
+                                
+                                const usedZ1 = countZ1 * dimZ1;
+                                const remainderZ1 = caseHeight - usedZ1;
+                                
+                                bestMixedArrangement = {
+                                    cellCount: totalCount,
+                                    remainderX: Math.min(remainderX1, caseLength - countX2 * dimX2),
+                                    remainderY: remainderY,
+                                    remainderZ: Math.min(remainderZ1, caseHeight - countZ2 * dimZ2),
+                                    arrangements: [
+                                        {
+                                            orientation: orientation1,
+                                            count: count1,
+                                            countX: countX1,
+                                            countY: countY1,
+                                            countZ: countZ1,
+                                            region: {
+                                                x: [0, caseLength],
+                                                y: [0, usedY1],
+                                                z: [0, caseHeight]
+                                            }
+                                        },
+                                        {
+                                            orientation: orientation2,
+                                            count: count2,
+                                            countX: countX2,
+                                            countY: countY2,
+                                            countZ: countZ2,
+                                            region: {
+                                                x: [0, caseLength],
+                                                y: [usedY1, usedY1 + usedY2],
+                                                z: [0, caseHeight]
+                                            }
+                                        }
+                                    ]
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 尝试沿Z轴分成两个区域
+            for (let orientation1 of orientations) {
+                const [dimX1, dimY1, dimZ1] = orientation1.dims;
+                const countX1 = Math.floor(caseLength / dimX1);
+                const countY1 = Math.floor(caseWidth / dimY1);
+                const countZ1 = Math.floor(caseHeight / dimZ1);
+                const usedZ1 = countZ1 * dimZ1;
+                
+                // 如果Z方向仍有剩余空间，尝试用另一种方向填充
+                if (usedZ1 < caseHeight) {
+                    const remainingZ = caseHeight - usedZ1;
+                    
+                    for (let orientation2 of orientations) {
+                        const [dimX2, dimY2, dimZ2] = orientation2.dims;
+                        const countZ2 = Math.floor(remainingZ / dimZ2);
+                        
+                        // 确保第二个方向有足够空间放置至少一个电芯
+                        if (countZ2 > 0) {
+                            const countX2 = Math.floor(caseLength / dimX2);
+                            const countY2 = Math.floor(caseWidth / dimY2);
+                            
+                            const count1 = countX1 * countY1 * countZ1;
+                            const count2 = countX2 * countY2 * countZ2;
+                            const totalCount = count1 + count2;
+                            
+                            if (totalCount > bestMixedCellCount) {
+                                bestMixedCellCount = totalCount;
+                                
+                                // 计算剩余空间
+                                const usedZ2 = countZ2 * dimZ2;
+                                const totalUsedZ = usedZ1 + usedZ2;
+                                const remainderZ = caseHeight - totalUsedZ;
+                                
+                                const usedX1 = countX1 * dimX1;
+                                const remainderX1 = caseLength - usedX1;
+                                
+                                const usedY1 = countY1 * dimY1;
+                                const remainderY1 = caseWidth - usedY1;
+                                
+                                bestMixedArrangement = {
+                                    cellCount: totalCount,
+                                    remainderX: Math.min(remainderX1, caseLength - countX2 * dimX2),
+                                    remainderY: Math.min(remainderY1, caseWidth - countY2 * dimY2),
+                                    remainderZ: remainderZ,
+                                    arrangements: [
+                                        {
+                                            orientation: orientation1,
+                                            count: count1,
+                                            countX: countX1,
+                                            countY: countY1,
+                                            countZ: countZ1,
+                                            region: {
+                                                x: [0, caseLength],
+                                                y: [0, caseWidth],
+                                                z: [0, usedZ1]
+                                            }
+                                        },
+                                        {
+                                            orientation: orientation2,
+                                            count: count2,
+                                            countX: countX2,
+                                            countY: countY2,
+                                            countZ: countZ2,
+                                            region: {
+                                                x: [0, caseLength],
+                                                y: [0, caseWidth],
+                                                z: [usedZ1, usedZ1 + usedZ2]
+                                            }
+                                        }
+                                    ]
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return bestMixedArrangement;
+        }
+        
+        // 绘制混合摆放的示意图
+        function drawMixedDiagram(arrangement, caseLength, caseWidth, caseHeight, cellLength, cellWidth, cellHeight) {
+            console.log('绘制混合摆放示意图');
+            
+            // 由于混合摆放示意图比较复杂，这里先使用第一种摆放方式的参数绘制
+            // 后续可以改进以更好地展示混合摆放
+            const firstArrangement = arrangement.arrangements[0];
+            
+            drawDiagram(
+                firstArrangement.countX,
+                firstArrangement.countY,
+                firstArrangement.countZ,
+                firstArrangement.orientation.dims[0],
+                firstArrangement.orientation.dims[1],
+                firstArrangement.orientation.dims[2],
+                "混合摆放 - " + firstArrangement.orientation.name
+            );
+            
+            // 可以在这里添加额外的混合摆放图示，比如多区域显示等
+            setupRotatable3DMixedView(arrangement, caseLength, caseWidth, caseHeight, cellLength, cellWidth, cellHeight);
+        }
+        
+        // 为混合摆放创建3D视图
+        function setupRotatable3DMixedView(mixedArrangement, caseLength, caseWidth, caseHeight, cellLength, cellWidth, cellHeight) {
+            console.log('设置混合摆放3D视图', mixedArrangement);
+            
+            // 获取或创建3D容器
+            let container = document.getElementById('3d-container');
+            if (container) {
+                // 清除现有内容
+                while (container.firstChild) {
+                    container.removeChild(container.firstChild);
+                }
+            } else {
+                container = document.createElement('div');
+                container.id = '3d-container';
+                container.style.width = '100%';
+                container.style.height = '500px';
+                container.style.marginTop = '20px';
+                container.style.marginBottom = '30px';
+                container.style.overflow = 'hidden';
+                container.style.position = 'relative';
+                container.style.borderRadius = '10px';
+                container.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+                
+                // 添加到结果区域
+                const resultDiv = document.getElementById('result');
+                if (!resultDiv) {
+                    console.error('找不到结果容器');
+                    return;
+                }
+                resultDiv.appendChild(container);
+            }
+            
+            // 添加标题
+            const title = document.createElement('h3');
+            title.textContent = '';
+            title.style.fontSize = '18px';
+            title.style.fontWeight = '600';
+            title.style.margin = '15px';
+            title.style.color = '#1d1d1f';
+            title.style.position = 'absolute';
+            title.style.top = '0';
+            title.style.left = '0';
+            title.setAttribute('data-title', '3d-view');
+            container.appendChild(title);
+            
+            // 添加提示信息
+            const instructions = document.createElement('div');
+            instructions.id = 'diagram-instructions';
+            instructions.style.position = 'absolute';
+            instructions.style.bottom = '10px';
+            instructions.style.right = '10px';
+            instructions.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+            instructions.style.padding = '5px 10px';
+            instructions.style.borderRadius = '5px';
+            instructions.style.fontSize = '12px';
+            instructions.style.color = '#666';
+            instructions.style.zIndex = '100';
+            instructions.innerHTML = '拖动旋转视图，滚轮缩放';
+            container.appendChild(instructions);
+            
+            // 创建Three.js场景
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf5f5f7);
+            
+            // 设置相机
+            const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 2000);
+            const maxDimension = Math.max(caseLength, caseWidth, caseHeight) * 2;
+            camera.position.set(maxDimension, maxDimension, maxDimension);
+            camera.lookAt(0, 0, 0);
+            
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(caseLength * 2, caseHeight * 2, caseWidth * 1.5);
+            scene.add(directionalLight);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight2.position.set(-caseLength, -caseHeight / 2, -caseWidth);
+            scene.add(directionalLight2);
+            
+            // 添加网格辅助线
+            const gridHelper = new THREE.GridHelper(Math.max(caseLength, caseWidth) * 1.5, 20, 0x888888, 0xdddddd);
+            gridHelper.position.y = -1;
+            scene.add(gridHelper);
+            
+            // 创建渲染器
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // 添加轨道控制
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            // 创建外壳
+            const caseGeometry = new THREE.BoxGeometry(caseLength, caseHeight, caseWidth);
+            const caseMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xdddddd, 
+                transparent: true, 
+                opacity: 0.3,
+                wireframe: false,
+                side: THREE.DoubleSide
+            });
+            const caseOutline = new THREE.LineSegments(
+                new THREE.EdgesGeometry(caseGeometry),
+                new THREE.LineBasicMaterial({ color: 0x999999, linewidth: 1 })
+            );
+            
+            const caseMesh = new THREE.Mesh(caseGeometry, caseMaterial);
+            caseMesh.position.set(caseLength/2, caseHeight/2, caseWidth/2);
+            caseOutline.position.copy(caseMesh.position);
+            scene.add(caseMesh);
+            scene.add(caseOutline);
+            
+            // 根据排列方式分配不同颜色 - 使用清晰区分的颜色
+            const colorPalette = [
+                0x3388dd, // 蓝色
+                0xff6644, // 红色
+                0x66cc66, // 绿色
+                0xffcc44, // 黄色
+                0x9966cc, // 紫色
+                0x66cccc  // 青色
+            ];
+            
+            // 为每个区域创建电芯
+            mixedArrangement.arrangements.forEach((arrangement, arrangementIndex) => {
+                const [dimX, dimY, dimZ] = arrangement.orientation.dims;
+                const colorIndex = arrangementIndex % colorPalette.length;
+                const cellColor = colorPalette[colorIndex];
+                
+                // 创建电芯几何体
+                const cellGeometry = new THREE.BoxGeometry(dimX, dimZ, dimY); // 注意XYZ轴的映射
+                const cellMaterial = new THREE.MeshStandardMaterial({ 
+                    color: cellColor,
+                    metalness: 0.1,
+                    roughness: 0.5
+                });
+                
+                // 获取当前区域的信息
+                const region = arrangement.region;
+                const startX = region.x[0];
+                const startY = region.y[0];
+                const startZ = region.z[0];
+                
+                // 遍历并创建电芯
+                for (let x = 0; x < arrangement.countX; x++) {
+                    for (let y = 0; y < arrangement.countY; y++) {
+                        for (let z = 0; z < arrangement.countZ; z++) {
+                            const cell = new THREE.Mesh(cellGeometry, cellMaterial);
+                            
+                            // 计算电芯位置 - 考虑区域的起始坐标
+                            const posX = startX + x * dimX + dimX / 2;
+                            const posY = startZ + z * dimZ + dimZ / 2; // Z轴映射到Y轴
+                            const posZ = startY + y * dimY + dimY / 2; // Y轴映射到Z轴
+                            
+                            cell.position.set(posX, posY, posZ);
+                            
+                            // 为电芯添加描边
+                            const cellOutline = new THREE.LineSegments(
+                                new THREE.EdgesGeometry(cellGeometry),
+                                new THREE.LineBasicMaterial({ color: 0x333333, linewidth: 0.5 })
+                            );
+                            cellOutline.position.copy(cell.position);
+                            
+                            scene.add(cell);
+                            scene.add(cellOutline);
+                        }
+                    }
+                }
+                
+                // 为当前区域添加边框，更清晰地显示不同区域
+                const regionWidth = region.x[1] - region.x[0];
+                const regionHeight = region.z[1] - region.z[0];
+                const regionDepth = region.y[1] - region.y[0];
+                
+                const regionGeometry = new THREE.BoxGeometry(regionWidth, regionHeight, regionDepth);
+                const regionMaterial = new THREE.MeshBasicMaterial({
+                    color: cellColor,
+                    transparent: true,
+                    opacity: 0.15,
+                    wireframe: false
+                });
+                
+                const regionOutline = new THREE.LineSegments(
+                    new THREE.EdgesGeometry(regionGeometry),
+                    new THREE.LineBasicMaterial({ color: cellColor, linewidth: 2 })
+                );
+                
+                const regionMesh = new THREE.Mesh(regionGeometry, regionMaterial);
+                regionMesh.position.set(
+                    startX + regionWidth / 2,
+                    startZ + regionHeight / 2,
+                    startY + regionDepth / 2
+                );
+                regionOutline.position.copy(regionMesh.position);
+                
+                scene.add(regionMesh);
+                scene.add(regionOutline);
+            });
+            
+            // 添加坐标轴辅助
+            const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight) * 0.8);
+            scene.add(axesHelper);
+            
+            // 添加3D文字标签显示不同区域信息
+            const fontLoader = new THREE.FontLoader();
+            fontLoader.load('https://cdn.jsdelivr.net/npm/three/examples/fonts/helvetiker_regular.typeface.json', function(font) {
+                mixedArrangement.arrangements.forEach((arrangement, index) => {
+                    const region = arrangement.region;
+                    const centerX = (region.x[0] + region.x[1]) / 2;
+                    const centerY = (region.z[0] + region.z[1]) / 2 + region.z[1] * 0.1; // 文字稍微高一点
+                    const centerZ = (region.y[0] + region.y[1]) / 2;
+                    
+                    // 创建区域标签
+                    const textGeometry = new THREE.TextGeometry(`区域 ${index+1}`, {
+                        font: font,
+                        size: Math.min(caseLength, caseWidth, caseHeight) * 0.05,
+                        height: 0.1
+                    });
+                    
+                    textGeometry.computeBoundingBox();
+                    const textWidth = textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+                    
+                    const textMaterial = new THREE.MeshBasicMaterial({ color: 0x333333 });
+                    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    
+                    // 定位在区域上方中央
+                    textMesh.position.set(centerX - textWidth / 2, centerY, centerZ);
+                    scene.add(textMesh);
+                });
+            });
+            
+            // 渲染函数
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            
+            // 开始渲染
+            animate();
+            
+            // 添加重置相机位置功能
+            function resetCameraPosition() {
+                // 计算需要的相机距离以显示整个外壳
+                const maxDimension = Math.max(caseLength, caseWidth, caseHeight);
+                // 设置距离使视图显示更大，确保满屏视角
+                const distance = maxDimension * 2.0;
+                
+                // 设置相机位置
+                camera.position.set(
+                    caseLength/2 + distance * 0.8, 
+                    caseHeight/2 + distance * 0.6, 
+                    caseWidth/2 + distance * 0.8
+                );
+                
+                // 看向外壳中心
+                camera.lookAt(caseLength/2, caseHeight/2, caseWidth/2);
+                
+                // 更新控制器
+                controls.target.set(caseLength/2, caseHeight/2, caseWidth/2);
+                controls.update();
+            }
+            
+            // 初始化相机位置以显示全貌
+            resetCameraPosition();
+            
+            // 添加重置视图按钮
+            const resetButton = document.createElement('button');
+            resetButton.style.position = 'absolute';
+            resetButton.style.top = '10px';
+            resetButton.style.right = '10px';
+            resetButton.style.padding = '8px 12px';
+            resetButton.style.backgroundColor = '#0071e3';
+            resetButton.style.color = '#ffffff';
+            resetButton.style.border = 'none';
+            resetButton.style.borderRadius = '8px';
+            resetButton.style.fontSize = '14px';
+            resetButton.style.fontWeight = '500';
+            resetButton.style.cursor = 'pointer';
+            resetButton.style.zIndex = '100';
+            resetButton.textContent = '重置视图';
+            resetButton.onclick = resetCameraPosition;
+            container.appendChild(resetButton);
+            
+            // 添加窗口调整大小的监听
+            function onWindowResize() {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+            
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function drawDiagram(lengthCount, widthCount, heightCount, cellX, cellY, cellZ, arrangementName) {
+            console.log('进入drawDiagram函数');
+            
+            // 获取实际尺寸
+            const caseLength = Number(document.getElementById('case-length').value);
+            const caseWidth = Number(document.getElementById('case-width').value);
+            const caseHeight = Number(document.getElementById('case-height').value);
+            const cellLength = Number(document.getElementById('cell-length').value);
+            const cellWidth = Number(document.getElementById('cell-width').value);
+            const cellHeight = Number(document.getElementById('cell-height').value);
+
+            // 计算剩余空间
+            const remainderLength = Number(caseLength - lengthCount * cellX).toFixed(1);
+            const remainderWidth = Number(caseWidth - widthCount * cellY).toFixed(1);
+            const remainderHeight = Number(caseHeight - heightCount * cellZ).toFixed(1);
+
+            // 直接创建3D可旋转模型，不再绘制三视图
+            setupRotatable3DView(lengthCount, widthCount, heightCount, cellX, cellY, cellZ, caseLength, caseWidth, caseHeight, arrangementName);
+        }
+
+        function setupRotatable3DView(lengthCount, widthCount, heightCount, cellX, cellY, cellZ, caseLength, caseWidth, caseHeight, arrangementName) {
+            try {
+                console.log('设置3D视图，参数：', {
+                    lengthCount, widthCount, heightCount, 
+                    cellX, cellY, cellZ, 
+                    caseLength, caseWidth, caseHeight
+                });
+                
+                // 确保引用电芯尺寸
+                const cellLength = Number(document.getElementById('cell-length').value);
+                const cellWidth = Number(document.getElementById('cell-width').value);
+                const cellHeight = Number(document.getElementById('cell-height').value);
+                
+                // 添加一个调试信息到控制台，检查实际渲染的电芯数量是否与计算结果一致
+                console.log('应该渲染的电芯数量：', lengthCount * widthCount * heightCount);
+                console.log('电芯排列方式：', `${lengthCount} × ${widthCount} × ${heightCount} (${arrangementName})`);
+                
+                // 更全面地移除所有可能的3D相关元素
+                function removeAll3DElements() {
+                    // 移除所有3D标题
+                    document.querySelectorAll('h3').forEach(el => {
+                        if (el.textContent.includes('3D视图') || 
+                            el.getAttribute('data-title') === '3d-view' ||
+                            el.textContent.includes('加载失败')) {
+                            console.log('移除3D标题:', el.textContent);
+                            el.remove();
+                        }
+                    });
+                    
+                    // 移除所有可能的3D容器
+                    document.querySelectorAll('[id^="3d-container"], [id="3d-diagram"]').forEach(el => {
+                        console.log('移除3D容器:', el.id);
+                        el.remove();
+                    });
+                    
+                    // 移除其他可能存在的元素
+                    const elementsToRemove = document.querySelectorAll(
+                        '#diagram-info, #diagram-instructions, #total-text, #size-info, ' +
+                        '#digital-info-container, [class*="3d"], [id*="3d"]'
+                    );
+                    elementsToRemove.forEach(el => el.remove());
+                }
+                
+                // 执行清理
+                removeAll3DElements();
+                
+                // 创建新的数字结果区域
+                const infoContainer = document.createElement('div');
+                infoContainer.id = 'digital-info-container';
+                infoContainer.style.width = '100%';
+                infoContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                infoContainer.style.margin = '20px auto';
+                infoContainer.style.padding = isMobile ? '15px 10px' : '20px';
+                infoContainer.style.backgroundColor = '#f5f5f7';
+                infoContainer.style.borderRadius = '12px';
+                infoContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+                infoContainer.style.fontFamily = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif';
+                infoContainer.style.fontSize = isMobile ? '14px' : '15px';
+                infoContainer.style.overflowX = isMobile ? 'auto' : 'visible';
+                
+                // 添加标题
+                const title = document.createElement('h3');
+                title.textContent = '';
+                title.style.fontSize = '18px';
+                title.style.fontWeight = '600';
+                title.style.marginBottom = '15px';
+                title.style.color = '#1d1d1f';
+                infoContainer.appendChild(title);
+                
+                // 添加到页面
+                const diagramCanvas = document.getElementById('diagram');
+                const parent = diagramCanvas.parentNode;
+                parent.insertBefore(infoContainer, diagramCanvas);
+                
+                // 如果是iOS，可能需要避免使用WebGL或降级处理
+                if (isIOS) {
+                    console.log('检测到iOS设备，使用降级处理');
+                    
+                    // 创建3D视图标题但添加警告
+                    const threeDTitle = document.createElement('h3');
+                    threeDTitle.textContent = '3D视图 (iOS兼容模式)';
+                    threeDTitle.setAttribute('data-title', '3d-view');
+                    threeDTitle.style.fontSize = isMobile ? '16px' : '18px';
+                    threeDTitle.style.fontWeight = '600';
+                    threeDTitle.style.margin = '30px 0 15px 0';
+                    threeDTitle.style.color = '#1d1d1f';
+                    
+                    // 创建简化的容器
+                    const threeDContainer = document.createElement('div');
+                    threeDContainer.id = '3d-container';
+                    threeDContainer.style.width = '100%';
+                    threeDContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                    threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
+                    threeDContainer.style.margin = '0 auto 30px auto';
+                    threeDContainer.style.position = 'relative';
+                    threeDContainer.style.backgroundColor = '#f5f5f7';
+                    threeDContainer.style.borderRadius = '12px';
+                    threeDContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+                    threeDContainer.style.display = 'flex';
+                    threeDContainer.style.alignItems = 'center';
+                    threeDContainer.style.justifyContent = 'center';
+                    threeDContainer.style.flexDirection = 'column';
+                    threeDContainer.style.padding = '20px';
+                    threeDContainer.style.textAlign = 'center';
+                    
+                    // 添加信息提示
+                    threeDContainer.innerHTML = `
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
+                        <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">电芯尺寸: ${cellX}×${cellY}×${cellZ} 厘米</div>
+                        <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">外壳尺寸: ${caseLength}×${caseWidth}×${caseHeight} 厘米</div>
+                        <div style="background-color: #ffefef; padding: 15px; border-radius: 8px; max-width: 90%;">
+                            <p style="margin: 0; color: #d0000f; font-size: 14px;">iOS设备目前暂不支持3D视图。</p>
+                            <p style="margin: 5px 0 0; color: #d0000f; font-size: 14px;">请参考上方三视图查看排列情况。</p>
+                        </div>
+                    `;
+                    
+                    // 添加到页面
+                    parent.appendChild(threeDTitle);
+                    parent.appendChild(threeDContainer);
+                    
+                    return; // 不继续执行Three.js相关代码
+                }
+                
+                // 创建3D视图标题
+                const threeDTitle = document.createElement('h3');
+                threeDTitle.textContent = '3D视图';
+                threeDTitle.setAttribute('data-title', '3d-view');
+                threeDTitle.style.fontSize = isMobile ? '16px' : '18px';
+                threeDTitle.style.fontWeight = '600';
+                threeDTitle.style.margin = '30px 0 15px 0';
+                threeDTitle.style.color = '#1d1d1f';
+                
+                // 创建3D容器
+                const threeDContainer = document.createElement('div');
+                threeDContainer.id = '3d-container';
+                threeDContainer.style.width = '100%';
+                threeDContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
+                threeDContainer.style.margin = '0 auto 30px auto';
+                threeDContainer.style.position = 'relative';
+                threeDContainer.style.backgroundColor = '#ffffff';
+                threeDContainer.style.borderRadius = '12px';
+                threeDContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+                threeDContainer.style.overflow = 'hidden';
+                
+                // 添加3D视图说明
+                const threeDInfo = document.createElement('div');
+                threeDInfo.style.position = 'absolute';
+                threeDInfo.style.bottom = '10px';
+                threeDInfo.style.left = '10px';
+                threeDInfo.style.backgroundColor = 'rgba(255,255,255,0.7)';
+                threeDInfo.style.padding = '6px 10px';
+                threeDInfo.style.borderRadius = '8px';
+                threeDInfo.style.fontSize = isMobile ? '11px' : '12px';
+                threeDInfo.style.color = '#1d1d1f';
+                threeDInfo.innerHTML = `
+                    <div>拖动可旋转查看 • 滚轮可缩放</div>
+                    <div>电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
+                `;
+                
+                // 创建3D画布
+                const threeDCanvas = document.createElement('canvas');
+                threeDCanvas.id = '3d-diagram';
+                threeDCanvas.width = isMobile ? window.innerWidth - 30 : 600;
+                threeDCanvas.height = isMobile ? 350 : 400; // 匹配容器高度
+                threeDCanvas.style.width = '100%';
+                threeDCanvas.style.height = '100%';
+                
+                // 添加到容器
+                threeDContainer.appendChild(threeDCanvas);
+                threeDContainer.appendChild(threeDInfo);
+                
+                // 添加到页面
+                parent.appendChild(threeDTitle);
+                parent.appendChild(threeDContainer);
+                
+                // 创建Three.js场景
+                if (typeof THREE === 'undefined') {
+                    console.error('THREE未定义，检查Three.js库是否正确加载');
+                    
+                    // 显示错误信息
+                    threeDContainer.style.display = 'flex';
+                    threeDContainer.style.alignItems = 'center';
+                    threeDContainer.style.justifyContent = 'center';
+                    threeDContainer.style.flexDirection = 'column';
+                    threeDContainer.style.padding = '20px';
+                    threeDContainer.style.backgroundColor = '#ffefef';
+                    
+                    threeDContainer.innerHTML = `
+                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #ff3b30;">3D视图加载失败</div>
+                        <div style="text-align: center;">
+                            <p style="margin: 0 0 10px 0;">请参考上方三视图查看排列情况</p>
+                            <p style="margin: 0; color: #86868b; font-size: 14px;">THREE is not defined</p>
+                        </div>
+                    `;
+                    
+                    // 尝试重新加载Three.js库
+                    const threeScript = document.createElement('script');
+                    threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+                    threeScript.onload = function() {
+                        console.log('Three.js已重新加载');
+                        
+                        // 加载OrbitControls
+                        const orbitScript = document.createElement('script');
+                        orbitScript.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
+                        orbitScript.onload = function() {
+                            console.log('OrbitControls已加载');
+                            // 刷新页面以重新初始化
+                            window.location.reload();
+                        };
+                        document.head.appendChild(orbitScript);
+                    };
+                    document.head.appendChild(threeScript);
+                    
+                    return; // 停止执行后续代码
+                }
+                
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xf5f5f7);
+                
+                // 设置相机
+                const camera = new THREE.PerspectiveCamera(50, threeDCanvas.width / threeDCanvas.height, 0.1, 1000);
+                camera.position.set(lengthCount * 2, heightCount * 3, widthCount * 3);
+                camera.lookAt(lengthCount/2, heightCount/2, widthCount/2);
+                
+                // 设置渲染器
+                const renderer = new THREE.WebGLRenderer({ canvas: threeDCanvas, antialias: true });
+                renderer.setSize(threeDCanvas.width, threeDCanvas.height);
+                
+                // 添加轨道控制
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                
+                // 添加环境光和定向光
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(lengthCount*2, heightCount*4, widthCount*2);
+                scene.add(directionalLight);
+                
+                // 创建电池壳体
+                const caseGeometry = new THREE.BoxGeometry(caseLength, caseHeight, caseWidth);
+                const caseMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x2196f3, 
+                    transparent: true, 
+                    opacity: 0.15
+                });
+                const caseMesh = new THREE.Mesh(caseGeometry, caseMaterial);
+                caseMesh.position.set(caseLength/2, caseHeight/2, caseWidth/2);
+                scene.add(caseMesh);
+                
+                // 创建电芯占用区域
+                const usedGeometry = new THREE.BoxGeometry(
+                    lengthCount * cellX, 
+                    heightCount * cellZ, 
+                    widthCount * cellY
+                );
+                const usedMaterial = new THREE.MeshBasicMaterial({ 
+                    color: 0x4caf50, 
+                    transparent: true, 
+                    opacity: 0.05,
+                    wireframe: true
+                });
+                const usedMesh = new THREE.Mesh(usedGeometry, usedMaterial);
+                usedMesh.position.set(
+                    lengthCount * cellX / 2, 
+                    heightCount * cellZ / 2, 
+                    widthCount * cellY / 2
+                );
+                scene.add(usedMesh);
+                
+                // 创建外壳线框
+                const wireframeGeometry = new THREE.EdgesGeometry(caseGeometry);
+                const wireframeMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0x0071e3, 
+                    linewidth: 2 
+                });
+                const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+                wireframe.position.copy(caseMesh.position);
+                scene.add(wireframe);
+                
+                // 创建始终朝向相机的标签
+                function createLabel(text, position, color = '#000000', bgColor = '#ffffff', scale = 1) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 256;
+                    canvas.height = 128;
+                    
+                    // 绘制背景
+                    ctx.fillStyle = bgColor;
+                    ctx.globalAlpha = 0.9;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 绘制边框
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 6;
+                    ctx.globalAlpha = 1.0;
+                    ctx.strokeRect(3, 3, canvas.width-6, canvas.height-6);
+                    
+                    // 绘制文字
+                    ctx.font = 'bold 32px Arial';
+                    ctx.fillStyle = color;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // 支持多行文本
+                    const lines = text.split('\n');
+                    const lineHeight = 40;
+                    const startY = canvas.height/2 - (lines.length - 1) * lineHeight/2;
+                    
+                    lines.forEach((line, i) => {
+                        ctx.fillText(line, canvas.width/2, startY + i * lineHeight);
+                    });
+                    
+                    const texture = new THREE.CanvasTexture(canvas);
+                    const spriteMaterial = new THREE.SpriteMaterial({ 
+                        map: texture,
+                        transparent: true
+                    });
+                    
+                    const sprite = new THREE.Sprite(spriteMaterial);
+                    sprite.position.copy(position);
+                    sprite.scale.set(2 * scale, 1 * scale, 1);
+                    
+                    return sprite;
+                }
+                
+                // 添加外壳尺寸标签
+                const caseSizeLabel = createLabel(
+                    `外壳: ${caseLength}×${caseWidth}×${caseHeight}厘米\n电芯: ${lengthCount}×${widthCount}×${heightCount}个`, 
+                    new THREE.Vector3(caseLength/2, caseHeight + 3, caseWidth/2),
+                    '#0071e3', 
+                    '#ffffff', 
+                    2
+                );
+                scene.add(caseSizeLabel);
+                
+                // 创建电芯尺寸标签
+                const cellSizeLabel = createLabel(
+                    `电芯: ${cellLength}×${cellWidth}×${cellHeight}厘米`,
+                    new THREE.Vector3(0, caseHeight + 1.5, 0),
+                    '#333333',
+                    '#ffffff',
+                    1
+                );
+                scene.add(cellSizeLabel);
+                
+                // 创建电芯模型
+                const cellGeometry = new THREE.BoxGeometry(cellX, cellZ, cellY);
+                
+                // 绘制电芯（从底部开始堆叠）
+                for (let y = 0; y < heightCount; y++) {
+                    // 计算层级渐变色，底部颜色深，顶部颜色浅
+                    const gradientIntensity = 1 - y / heightCount;
+                    const hue = 0.6 + gradientIntensity * 0.1; // 蓝色调范围
+                    const saturation = 0.7;
+                    const lightness = 0.4 + gradientIntensity * 0.3; // 底部深色，顶部浅色
+                    const color = new THREE.Color().setHSL(hue, saturation, lightness);
+                    
+                    for (let z = 0; z < widthCount; z++) {
+                        for (let x = 0; x < lengthCount; x++) {
+                            const cellMaterial = new THREE.MeshPhongMaterial({ 
+                                color: color,
+                                specular: 0x111111,
+                                shininess: 30,
+                            });
+                            
+                            const cellMesh = new THREE.Mesh(cellGeometry, cellMaterial);
+                            
+                            // 定位电芯，考虑尺寸
+                            cellMesh.position.set(
+                                x * cellX + cellX/2,
+                                y * cellZ + cellZ/2,
+                                z * cellY + cellY/2
+                            );
+                            
+                            // 添加边框
+                            const edgesGeometry = new THREE.EdgesGeometry(cellGeometry);
+                            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
+                            const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+                            cellMesh.add(edges);
+                            
+                            // 添加层级标记
+                            if (cellZ > 0.5) { // 只对足够大的电芯添加标记
+                                // 为电芯添加层级标记
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 64;
+                                canvas.height = 64;
+                                const ctx = canvas.getContext('2d');
+                                
+                                // 绘制层级数字
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = 'bold 40px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(`${y+1}`, 32, 32);
+                                
+                                const numberTexture = new THREE.CanvasTexture(canvas);
+                                const labelMaterial = new THREE.SpriteMaterial({ map: numberTexture, transparent: true });
+                                const labelSprite = new THREE.Sprite(labelMaterial);
+                                
+                                // 将标记放在电芯前方
+                                labelSprite.position.set(0, 0, cellY/2 + 0.05);
+                                labelSprite.scale.set(cellX/2, cellZ/2, 1);
+                                cellMesh.add(labelSprite);
+                            }
+                            
+                            scene.add(cellMesh);
+                        }
+                    }
+                }
+                
+                // 添加网格辅助线
+                const gridHelper = new THREE.GridHelper(
+                    Math.max(caseLength, caseWidth) * 1.2, 
+                    Math.ceil(Math.max(caseLength, caseWidth) / Math.min(cellX, cellY))
+                );
+                gridHelper.position.set(caseLength/2, 0, caseWidth/2);
+                scene.add(gridHelper);
+                
+                // 添加坐标轴辅助
+                const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight));
+                scene.add(axesHelper);
+                
+                // 动画循环
+                function animate() {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                }
+                
+                // 确保有效的电芯尺寸
+                if (!cellLength || !cellWidth || !cellHeight) {
+                    console.error('电芯尺寸未定义！使用默认值代替');
+                    // 使用绘图函数传入的值作为备用
+                    cellLength = cellX;
+                    cellWidth = cellY;
+                    cellHeight = cellZ;
+                    
+                    // 添加错误提示
+                    const errorLabel = createLabel(
+                        '警告：使用的是推导尺寸\n请重新计算',
+                        new THREE.Vector3(caseLength/2, caseHeight/2, caseWidth/2),
+                        '#ff3b30',
+                        '#ffffff',
+                        2
+                    );
+                    scene.add(errorLabel);
+                }
+                
+                // 开启动画
+                animate();
+                
+                // 在相机设置后修改相机位置以显示全貌
+                function resetCameraPosition() {
+                    // 计算需要的相机距离以显示整个外壳
+                    const maxDimension = Math.max(caseLength, caseWidth, caseHeight);
+                    // 减小距离系数，使视图显示更大
+                    const distance = maxDimension * 2.0; // 从2.5减小到2.0，使物体在视图中显得更大
+                    
+                    // 设置相机位置
+                    camera.position.set(
+                        caseLength/2 + distance * 0.8, 
+                        caseHeight/2 + distance * 0.6, 
+                        caseWidth/2 + distance * 0.8
+                    );
+                    
+                    // 看向外壳中心
+                    camera.lookAt(caseLength/2, caseHeight/2, caseWidth/2);
+                    
+                    // 更新控制器
+                    controls.target.set(caseLength/2, caseHeight/2, caseWidth/2);
+                    controls.update();
+                }
+                
+                // 初始化相机位置以显示全貌
+                resetCameraPosition();
+                
+                // 添加重置视图按钮
+                const resetButton = document.createElement('button');
+                resetButton.style.position = 'absolute';
+                resetButton.style.top = '10px';
+                resetButton.style.right = '10px';
+                resetButton.style.padding = '8px 12px';
+                resetButton.style.backgroundColor = '#0071e3';
+                resetButton.style.color = '#ffffff';
+                resetButton.style.border = 'none';
+                resetButton.style.borderRadius = '8px';
+                resetButton.style.fontSize = '14px';
+                resetButton.style.fontWeight = '500';
+                resetButton.style.cursor = 'pointer';
+                resetButton.style.zIndex = '100';
+                resetButton.textContent = '重置视图';
+                resetButton.onclick = resetCameraPosition;
+                threeDContainer.appendChild(resetButton);
+                
+                // 页面大小调整时重新适应
+                window.addEventListener('resize', function() {
+                    if (threeDContainer.clientWidth > 0) {
+                        camera.aspect = threeDContainer.clientWidth / threeDContainer.clientHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(threeDContainer.clientWidth, threeDContainer.clientHeight);
+                    }
+                });
+
+                // 为手机端优化显示
+                if (isMobile) {
+                    // 增强3D视图质量
+                    renderer.setPixelRatio(window.devicePixelRatio || 2); // 使用更高的像素比
+                    
+                    // 优化相机视角，确保更好的移动端视图
+                    const mobileCameraDistance = maxDimension * 2.2; // 增加距离以适应屏幕
+                    camera.position.set(
+                        caseLength/2 + mobileCameraDistance * 0.7,
+                        caseHeight/2 + mobileCameraDistance * 0.7,
+                        caseWidth/2 + mobileCameraDistance * 0.7
+                    );
+                    
+                    // 增加电芯边框宽度，使其在手机上更明显
+                    scene.traverse(function(obj) {
+                        if (obj instanceof THREE.LineSegments) {
+                            obj.material.linewidth = 2; // 尝试增加线宽（注意：受WebGL限制，可能不生效）
+                        }
+                    });
+                    
+                    // 界面元素适配
+                    threeDInfo.style.fontSize = '11px';
+                    threeDInfo.style.padding = '6px 10px';
+                    
+                    // 减少元素以提高性能
+                    gridHelper.visible = false; // 隐藏网格以减少复杂度
+                    
+                    // 优化移动端样式
+                    infoContainer.style.padding = '12px 5px'; // 减少手机端内边距
+                    title.style.marginBottom = '10px'; // 减少标题下边距
+                    title.style.fontSize = '16px'; // 减小标题字体
+                    table.style.fontSize = '12px'; // 减小表格字体
+                    
+                    // 直接在表格上设置样式，确保宽度适应移动设备
+                    table.style.width = '100%';
+                    table.style.minWidth = 'auto';
+                    table.style.maxWidth = '100%';
+                    table.style.tableLayout = 'fixed';
+                }
+            } catch (error) {
+                console.error('设置3D视图时出错:', error);
+                
+                // 出错时创建错误提示界面
+                const errorContainer = document.createElement('div');
+                errorContainer.id = '3d-container';
+                errorContainer.style.width = '100%';
+                errorContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                errorContainer.style.height = isMobile ? '350px' : '400px';
+                errorContainer.style.margin = '0 auto 30px auto';
+                errorContainer.style.position = 'relative';
+                errorContainer.style.backgroundColor = '#fff0f0';
+                errorContainer.style.borderRadius = '12px';
+                errorContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+                errorContainer.style.display = 'flex';
+                errorContainer.style.alignItems = 'center';
+                errorContainer.style.justifyContent = 'center';
+                errorContainer.style.flexDirection = 'column';
+                errorContainer.style.padding = '20px';
+                errorContainer.style.textAlign = 'center';
+                
+                errorContainer.innerHTML = `
+                    <div style="font-size: 16px; font-weight: 600; color: #d0000f; margin-bottom: 15px;">3D视图加载失败</div>
+                    <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">请参考上方三视图查看排列情况</div>
+                    <div style="font-size: 12px; color: #999; max-width: 80%;">${error.message}</div>
+                `;
+                
+                const errorTitle = document.createElement('h3');
+                errorTitle.textContent = '3D视图 (加载失败)';
+                errorTitle.setAttribute('data-title', '3d-view');
+                errorTitle.style.fontSize = isMobile ? '16px' : '18px';
+                errorTitle.style.fontWeight = '600';
+                errorTitle.style.margin = '30px 0 15px 0';
+                errorTitle.style.color = '#1d1d1f';
+                
+                const parent = document.getElementById('diagram').parentNode;
+                parent.appendChild(errorTitle);
+                parent.appendChild(errorContainer);
+            }
+        }
+
+        // 清除所有输入
+        function clearInputs() {
+            document.getElementById('case-length').value = '';
+            document.getElementById('case-width').value = '';
+            document.getElementById('case-height').value = '';
+            document.getElementById('cell-length').value = '';
+            document.getElementById('cell-width').value = '';
+            document.getElementById('cell-height').value = '';
+            
+            // 清除所有输入框的filled类
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.classList.remove('filled');
+            });
+            
+            document.getElementById('result').style.display = 'none';
+            const canvas = document.getElementById('diagram');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取所有输入框
+            const inputs = document.querySelectorAll('input[type="number"]');
+            
+            // 为每个输入框添加事件监听器
+            inputs.forEach(input => {
+                // 检查localStorage中是否有保存的值
+                const savedValue = localStorage.getItem(input.id);
+                if (savedValue) {
+                    input.value = savedValue;
+                    if (input.value.trim() !== '') {
+                        input.classList.add('filled');
+                    }
+                }
+                
+                // 监听输入变化，改变样式
+                input.addEventListener('input', function() {
+                    if (this.value.trim() !== '') {
+                        this.classList.add('filled');
+                    } else {
+                        this.classList.remove('filled');
+                    }
+                    // 如果启用了自动保存，保存输入值
+                    if (document.getElementById('auto-save').checked) {
+                        localStorage.setItem(this.id, this.value);
+                    }
+                });
+                
+                // 初始化时检查是否已有值
+                if (input.value.trim() !== '') {
+                    input.classList.add('filled');
+                }
+            });
+            
+            // 绑定按钮事件
+            document.getElementById('calculate').addEventListener('click', calculate);
+            document.getElementById('clear').addEventListener('click', function() {
+                clearInputs();
+                // 清除所有输入框的filled类
+                inputs.forEach(input => {
+                    input.classList.remove('filled');
+                });
+            });
+            document.getElementById('auto-save').addEventListener('change', handleAutoSaveChange);
+            
+            // 检查是否需要加载保存的值
+            loadSavedValues();
+        });
+    </script>
+</body>
+</html>
