@@ -1,5 +1,5 @@
-<!-- Trigger redeploy -->
 <!DOCTYPE html>
+<!-- Trigger redeploy -->
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -3381,9 +3381,9 @@
             
             // 设置渲染器大小
             const size = 200;
-            Frontrenderer。设置（尺寸，大小） ;
-            TopRenderer。设置（尺寸，大小） ;
-            leftrenderer。设置（尺寸，大小） ;
+            frontRenderer.setSize(size, size);
+            topRenderer.setSize(size, size);
+            leftRenderer.setSize(size, size);
             rightRenderer.setSize(size, size);
 
             // 设置背景色
@@ -3395,33 +3395,33 @@
             // 存储相机和渲染器
             window.orthographicCameras = {
                 front: frontCamera,
-                顶部：topcamera，，
-                左：LeftCamera，，
-                右：右卡米拉
-            } ;
-            窗户。矫形器= {
-                正面：frontrenderer，，
-                顶部：toprenderer，，
-                左：leftrenderer，，
-                右：Rightrenderer
-            } ;
+                top: topCamera,
+                left: leftCamera,
+                right: rightCamera
+            };
+            window.orthographicRenderers = {
+                front: frontRenderer,
+                top: topRenderer,
+                left: leftRenderer,
+                right: rightRenderer
+            };
 
-            安慰。log （'三视图初始化完成'  ） ;
+            console.log('三视图初始化完成');
         }
         
-        //更新三视图
-        函数（updateorthrophicViews ）（（）{
-            如果（ ！
+        // 更新三视图
+        function updateOrthographicViews() {
+            if (!scene || !window.orthographicCameras || !window.orthographicRenderers) return;
             
-            窗户。校准人。正面。渲染（场景，窗口。矫形车场。正面）；
-            窗户。校准人。顶部。渲染（场景，窗口。正骨库胺。顶部）；
-            窗户。校准人。左边。渲染（场景，窗口。，窗口。
-            窗户。校准人。正确的。渲染（场景，窗口。，窗口。
+            window.orthographicRenderers.front.render(scene, window.orthographicCameras.front);
+            window.orthographicRenderers.top.render(scene, window.orthographicCameras.top);
+            window.orthographicRenderers.left.render(scene, window.orthographicCameras.left);
+            window.orthographicRenderers.right.render(scene, window.orthographicCameras.right);
         }
         
-        //修改窗口大小调整函数
-        窗户。addeventListener （'ressize' ，onwindowresize，false ） ;
-        函数（onwindowresize ）（（（（）） {
+        // 修改窗口大小调整函数
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -3430,11 +3430,11 @@
             const size = 200;
             frontRenderer.setSize(size, size);
             topRenderer.setSize(size, size);
-            leftrenderer。设置（尺寸，大小） ;
-            Rightrenderer。设置（尺寸，大小） ;
+            leftRenderer.setSize(size, size);
+            rightRenderer.setSize(size, size);
         }
         
-        init （） ;
-    </ script >
-</ body >
-</ html >
+        init();
+    </script>
+</body>
+</html>
