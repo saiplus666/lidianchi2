@@ -3,10 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>锂电池电芯计算器</title>
+    <!-- 预加载核心脚本资源 -->
+    <link rel="preload" href="https://unpkg.com/three@0.128.0/build/three.min.js" as="script">
+    <link rel="preload" href="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js" as="script">
+    <!-- 备用CDN预加载 -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" as="script">
+    
+    <!-- 脚本加载错误处理 -->
+    <script>
+        // 检测Three.js是否成功加载
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'SCRIPT') {
+                console.error('脚本加载失败，尝试使用备用CDN', e.target.src);
+                const isThreeJS = e.target.src.includes('three');
+                if (isThreeJS) {
+                    if (e.target.src.includes('unpkg.com')) {
+                        const newSrc = e.target.src.replace('unpkg.com', 'cdn.jsdelivr.net/npm');
+                        const fallbackScript = document.createElement('script');
+                        fallbackScript.src = newSrc;
+                        document.head.appendChild(fallbackScript);
+                    }
+                }
+            }
+        }, true);
+    </script>
+    
     <!-- 使用单一CDN直接内联加载Three.js和OrbitControls，确保版本匹配和依赖关系 -->
     <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
     <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
@@ -206,6 +236,8 @@
         @media (max-width: 600px) {
             body {
                 padding: 5px; /* 从8px减小到5px */
+                -webkit-text-size-adjust: 100%; /* 防止iOS上的文本自动调整大小 */
+                overflow-x: hidden; /* 防止水平溢出 */
             }
             h1 {
                 font-size: 20px; /* 从22px减小到20px */
@@ -225,13 +257,13 @@
             }
             .flex-row {
                 flex-direction: row; /* 改为水平布局 */
-                flex-wrap: nowrap; /* 不换行 */
+                flex-wrap: wrap; /* 允许换行，确保小屏幕上能够正确显示 */
                 gap: 3px; /* 从5px减小到3px */
                 justify-content: space-between;
             }
             .input-item {
                 margin: 1px 0; /* 从2px减小到1px */
-                min-width: auto; /* 取消最小宽度限制 */
+                min-width: 30%; /* 确保在小屏幕上能有合适的宽度 */
                 flex: 1; /* 均分可用空间 */
             }
             .input-field {
@@ -248,8 +280,8 @@
                 padding: 4px; /* 从6px减小到4px */
                 font-size: 12px; /* 从13px减小到12px */
                 height: 26px; /* 从28px减小到26px */
-                width: 100%; /* 占满容器 */
-                box-sizing: border-box;
+                -webkit-appearance: none; /* 移除iOS上的默认样式 */
+                border-radius: 8px; /* 确保在iOS上显示圆角 */
             }
             .saved-cell {
                 margin: 8px 0; /* 从10px减小到8px */
@@ -407,8 +439,79 @@
     </div>
 
     <script>
+        // 检测是否为移动设备
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768);
+        
+        // 检测Three.js是否成功加载
+        const hasThreeJS = typeof THREE !== 'undefined';
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("页面加载完成，设备检测:", isMobile ? "移动设备" : "桌面设备");
+            console.log("Three.js加载状态:", hasThreeJS ? "已加载" : "未加载");
+            
+            // ThreeJS失败后的回退加载
+            if (!hasThreeJS) {
+                console.log("尝试重新加载Three.js库");
+                loadScript("https://unpkg.com/three@0.128.0/build/three.min.js", function() {
+                    loadScript("https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js");
+                });
+            }
+            
+            // 为输入框添加事件监听
+            setupInputListeners();
+            
+            // 加载保存的电芯尺寸
+            loadSavedDimensions();
+        });
+        
+        // 辅助函数：动态加载脚本
+        function loadScript(src, callback) {
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            
+            if (callback) {
+                script.onload = callback;
+            }
+            
+            script.onerror = function() {
+                console.error("脚本加载失败:", src);
+                // 如果是CDN加载失败，尝试使用备用CDN
+                if (src.includes('unpkg.com')) {
+                    const newSrc = src.replace('unpkg.com', 'cdn.jsdelivr.net/npm');
+                    console.log("尝试备用CDN:", newSrc);
+                    loadScript(newSrc);
+                }
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        // 设置输入框监听
+        function setupInputListeners() {
+            const inputs = document.querySelectorAll('input[type="number"]');
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    if (this.value) {
+                        this.classList.add('filled');
+                    } else {
+                        this.classList.remove('filled');
+                    }
+                });
+                
+                // 对于移动设备，增加点击后自动选择内容
+                if (isMobile) {
+                    input.addEventListener('focus', function() {
+                        setTimeout(() => this.select(), 100);
+                    });
+                }
+            });
+        }
+        
         // 定义全局变量
-        const isMobile = window.innerWidth <= 600;
+        // const isMobile = window.innerWidth <= 600;
         let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
@@ -2986,6 +3089,53 @@
             controls.update();
             updateMixedDimensionLabels(); // 更新尺寸标注位置
             renderer.render(scene, camera);
+        }
+    </script>
+
+    <!-- 添加Service Worker注册 -->
+    <script>
+        // 检测是否支持Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                    // Service Worker注册成功
+                    console.log('ServiceWorker注册成功，范围:', registration.scope);
+                }, function(err) {
+                    // 注册失败
+                    console.log('ServiceWorker注册失败:', err);
+                });
+            });
+        }
+        
+        // 检测网络状态变化
+        window.addEventListener('online', function() {
+            console.log('网络已连接');
+            document.body.classList.remove('offline');
+        });
+        
+        window.addEventListener('offline', function() {
+            console.log('网络已断开');
+            document.body.classList.add('offline');
+        });
+        
+        // 处理初始加载失败的特殊情况
+        if (!window.THREE && document.getElementById('three-js-error') === null) {
+            console.log('THREE.js加载失败，创建错误提示');
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'three-js-error';
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '0';
+            errorDiv.style.left = '0';
+            errorDiv.style.width = '100%';
+            errorDiv.style.padding = '10px';
+            errorDiv.style.backgroundColor = '#ffefef';
+            errorDiv.style.color = '#d0000f';
+            errorDiv.style.textAlign = 'center';
+            errorDiv.style.zIndex = '9999';
+            errorDiv.innerHTML = `
+                <p>加载3D库失败，请检查网络连接或<a href="#" onclick="window.location.reload(); return false;">刷新页面</a>重试</p>
+            `;
+            document.body.insertBefore(errorDiv, document.body.firstChild);
         }
     </script>
 </body>
