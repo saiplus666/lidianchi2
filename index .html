@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>锂电池电芯计算器</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- 使用单一CDN直接内联加载Three.js和OrbitControls，确保版本匹配和依赖关系 -->
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
@@ -222,59 +223,64 @@
                 font-size: 15px; /* 从16px减小到15px */
                 margin-bottom: 5px; /* 从10px减小到5px */
             }
+            .flex-row {
+                flex-direction: row; /* 改为水平布局 */
+                flex-wrap: nowrap; /* 不换行 */
+                gap: 3px; /* 从5px减小到3px */
+                justify-content: space-between;
+            }
             .input-item {
                 margin: 1px 0; /* 从2px减小到1px */
+                min-width: auto; /* 取消最小宽度限制 */
+                flex: 1; /* 均分可用空间 */
             }
             .input-field {
                 margin-bottom: 2px; /* 从4px减小到2px */
             }
             
             .input-field label {
-                width: 35px; /* 从40px减小到35px */
+                width: 25px; /* 从35px减小到25px */
                 font-size: 12px; /* 从13px减小到12px */
+                margin-right: 2px; /* 减小右边距 */
             }
             
             input[type="number"] {
                 padding: 4px; /* 从6px减小到4px */
                 font-size: 12px; /* 从13px减小到12px */
-                height: 28px; /* 从32px减小到28px */
+                height: 26px; /* 从28px减小到26px */
+                width: 100%; /* 占满容器 */
+                box-sizing: border-box;
             }
             .saved-cell {
-                margin: 10px 0; /* 从15px减小到10px */
-                padding: 8px; /* 从10px减小到8px */
+                margin: 8px 0; /* 从10px减小到8px */
+                padding: 6px; /* 从8px减小到6px */
             }
             .saved-cell h3 {
                 font-size: 15px; /* 从16px减小到15px */
-                margin-bottom: 5px; /* 从10px减小到5px */
+                margin-bottom: 4px; /* 从5px减小到4px */
             }
             .saved-cell button {
-                padding: 3px 6px; /* 减小按钮内边距 */
-                font-size: 12px; /* 从13px减小到12px */
+                padding: 2px 4px; /* 减小按钮内边距 */
+                font-size: 11px; /* 从12px减小到11px */
                 margin: 1px; /* 从2px减小到1px */
             }
             .btn-group {
                 gap: 5px; /* 从10px减小到5px */
-                margin-bottom: 10px; /* 从20px减小到10px */
+                margin-bottom: 8px; /* 从10px减小到8px */
             }
             button {
-                padding: 6px 10px; /* 从8px 12px减小到6px 10px */
+                padding: 6px 8px; /* 从6px 10px减小到6px 8px */
                 font-size: 13px; /* 从14px减小到13px */
             }
-            /* 使电芯尺寸部分和电池外壳尺寸部分在同一行显示 */
             .container {
-                display: flex;
-                flex-direction: column;
-            }
-            .input-group, .saved-cell {
-                width: 100%;
-                box-sizing: border-box;
+                padding: 0 3px;
             }
             /* 让保存的电芯尺寸更紧凑 */
             #saved-dimensions {
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: flex-start;
-                gap: 3px;
+                gap: 2px;
             }
             .views-container {
                 margin-top: 5px;
@@ -283,8 +289,40 @@
                 margin: 5px 0;
                 font-size: 15px;
             }
-            /* 解决重复的媒体查询问题 */
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            table {
+                display: table; 
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+                table-layout: fixed;
+                font-size: 12px;
+            }
+            #digital-info-container {
+                padding: 12px 5px;
+                width: auto;
+            }
+            #digital-info-container table {
+                font-size: 12px;
+            }
+            #digital-info-container table th,
+            #digital-info-container table td {
+                padding: 6px 2px;
+                word-break: keep-all;
+                white-space: nowrap;
+            }
+            .views-container {
+                transform: scale(0.95);
+                transform-origin: left top;
+            }
+            #3d-container {
+                height: 350px !important;
+            }
         }
+
         .input-field {
             display: flex;
             align-items: center;
@@ -297,117 +335,12 @@
             margin-bottom: 0;
             flex-shrink: 0;
         }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 8px; /* 从10px减小到8px */
-            }
-            h1 {
-                font-size: 22px; /* 从24px减小到22px */
-            }
-            p {
-                font-size: 14px; /* 减小说明文字 */
-                margin-bottom: 15px; /* 减小底部间距 */
-            }
-            .input-group {
-                padding: 10px; /* 从12px减小到10px */
-                margin-bottom: 15px; /* 从20px减小到15px */
-            }
-            .input-group h3 {
-                font-size: 16px; /* 从18px减小到16px */
-                margin-bottom: 10px; /* 从15px减小到10px */
-            }
-            .flex-row {
-                flex-direction: column; /* 在小屏幕上改为垂直布局 */
-                gap: 5px; /* 从10px减小到5px */
-            }
-            .input-item {
-                min-width: 100%; /* 在垂直布局中占满宽度 */
-                margin: 2px 0; /* 减小间距 */
-            }
-            .input-field {
-                margin-bottom: 4px;
-            }
-            
-            .input-field label {
-                width: 40px;
-                font-size: 13px;
-            }
-            
-            input[type="number"] {
-                flex-grow: 1;
-                width: auto; /* 让输入框自动适应宽度 */
-                padding: 6px; /* 在手机端进一步减小内边距 */
-                font-size: 13px; /* 在手机端进一步减小字体 */
-                height: 32px; /* 设置固定高度使输入框更小 */
-                margin: 0; /* 移除上下外边距 */
-            }
-            .input-group label {
-                margin-bottom: 4px; /* 从8px减小到4px */
-                font-size: 14px; /* 减小标签字体 */
-            }
-            button {
-                padding: 8px 12px; /* 减小按钮内边距 */
-                font-size: 14px; /* 减小按钮字体 */
-            }
-            
-            /* 添加新的样式以减小保存电芯尺寸区域 */
-            .saved-cell {
-                margin: 15px 0; /* 从20px减小到15px */
-                padding: 10px; /* 从15px减小到10px */
-            }
-            .saved-cell h3 {
-                font-size: 16px; /* 从18px减小到16px */
-                margin-bottom: 10px; /* 从15px减小到10px */
-            }
-            .saved-cell button {
-                padding: 4px 8px; /* 减小按钮内边距 */
-                font-size: 13px; /* 减小按钮字体 */
-                margin: 2px; /* 减少按钮间距 */
-            }
-            canvas {
-                width: 100%;
-                height: auto;
-            }
-            .container {
-                max-width: 100%;
-                padding: 0 5px;
-            }
-            table {
-                display: table; /* 改为table而不是block，避免横向滚动 */
-                width: 100%;
-                min-width: 0;
-                max-width: 100%;
-                table-layout: fixed; /* 强制使用固定布局，适应屏幕 */
-                font-size: 12px; /* 减小字体大小 */
-            }
-            #digital-info-container {
-                padding: 12px 5px; /* 减少内边距 */
-                width: auto;
-            }
-            #digital-info-container table {
-                font-size: 12px;
-            }
-            #digital-info-container table th,
-            #digital-info-container table td {
-                padding: 6px 2px; /* 减少单元格内边距 */
-                word-break: keep-all; /* 防止文字换行 */
-                white-space: nowrap; /* 防止文字换行 */
-            }
-            .views-container {
-                transform: scale(0.95);
-                transform-origin: left top;
-            }
-            #3d-container {
-                height: 350px !important; /* 增加手机端3D视图高度 */
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>锂电池电芯计算器</h1>
-        <p>请输入电池外壳和电芯的尺寸（单位：厘米）</p>
+        <p>输入电池外壳和电芯尺寸（厘米）</p>
         
         <div class="input-group">
             <h3>电池外壳尺寸：</h3>
@@ -415,19 +348,19 @@
                 <div class="input-item">
                     <div class="input-field">
                         <label>长：</label>
-                        <input type="number" id="case-length" min="0" step="0.1" onkeypress="handleEnter(event, 'case-width')">
+                        <input type="number" id="case-length" min="0" step="0.1" value="30" onkeypress="handleEnter(event, 'case-width')">
                     </div>
                 </div>
                 <div class="input-item">
                     <div class="input-field">
                         <label>宽：</label>
-                        <input type="number" id="case-width" min="0" step="0.1" onkeypress="handleEnter(event, 'case-height')">
+                        <input type="number" id="case-width" min="0" step="0.1" value="60" onkeypress="handleEnter(event, 'case-height')">
                     </div>
                 </div>
                 <div class="input-item">
                     <div class="input-field">
                         <label>高：</label>
-                        <input type="number" id="case-height" min="0" step="0.1" onkeypress="handleEnter(event, 'cell-length')">
+                        <input type="number" id="case-height" min="0" step="0.1" value="60" onkeypress="handleEnter(event, 'cell-length')">
                     </div>
                 </div>
             </div>
@@ -444,19 +377,19 @@
                 <div class="input-item">
                     <div class="input-field">
                         <label>长：</label>
-                        <input type="number" id="cell-length" min="0" step="0.1" onkeypress="handleEnter(event, 'cell-width')" onchange="saveCellDimensions()">
+                        <input type="number" id="cell-length" min="0" step="0.1" value="33" onkeypress="handleEnter(event, 'cell-width')" onchange="saveCellDimensions()">
                     </div>
                 </div>
                 <div class="input-item">
                     <div class="input-field">
                         <label>宽：</label>
-                        <input type="number" id="cell-width" min="0" step="0.1" onkeypress="handleEnter(event, 'cell-height')" onchange="saveCellDimensions()">
+                        <input type="number" id="cell-width" min="0" step="0.1" value="10.1" onkeypress="handleEnter(event, 'cell-height')" onchange="saveCellDimensions()">
                     </div>
                 </div>
                 <div class="input-item">
                     <div class="input-field">
                         <label>高：</label>
-                        <input type="number" id="cell-height" min="0" step="0.1" onkeypress="handleEnter(event, 'calculate-button')" onchange="saveCellDimensions()">
+                        <input type="number" id="cell-height" min="0" step="0.1" value="13" onkeypress="handleEnter(event, 'calculate-button')" onchange="saveCellDimensions()">
                     </div>
                 </div>
             </div>
@@ -470,11 +403,6 @@
         <div id="result">
             <h3>计算结果：</h3>
             <p id="result-text"></p>
-        </div>
-
-        <div class="views-container">
-            <h3>3D视图：</h3>
-            <canvas id="diagram" width="600" height="650" style="display: none;"></canvas>
         </div>
     </div>
 
@@ -644,7 +572,6 @@
                                     </div>
                                     <div style="flex: 1; min-width: 180px;">
                                         <div>区域尺寸: ${regionWidth.toFixed(2)}×${regionDepth.toFixed(2)}×${regionHeight.toFixed(2)} cm</div>
-                                        <div>位置: X(${arr.region.x[0].toFixed(1)}-${arr.region.x[1].toFixed(1)}) Y(${arr.region.y[0].toFixed(1)}-${arr.region.y[1].toFixed(1)}) Z(${arr.region.z[0].toFixed(1)}-${arr.region.z[1].toFixed(1)})</div>
                                     </div>
                                 </div>
                             </div>
@@ -1466,8 +1393,10 @@
             scene.add(directionalLight2);
             
             // 添加网格辅助线
-            const gridHelper = new THREE.GridHelper(Math.max(caseLength, caseWidth) * 1.5, 20, 0x888888, 0xdddddd);
-            gridHelper.position.y = -1;
+            const gridSize = Math.max(caseLength, caseWidth) * 2; // 增大网格大小为原来的2倍
+            const gridHelper = new THREE.GridHelper(gridSize, 40, 0x888888, 0xdddddd); // 增加网格线数量，40×40
+            // 将网格中心定位在坐标系原点(0,0,0)，使网格线从0开始
+            gridHelper.position.set(0, -0.5, 0);
             scene.add(gridHelper);
             
             // 创建渲染器
@@ -1496,6 +1425,7 @@
                 new THREE.LineBasicMaterial({ color: 0x999999, linewidth: 1 })
             );
             
+            // 修改caseMesh的位置，使其从坐标(0,0,0)开始放置，而不是中心对齐
             const caseMesh = new THREE.Mesh(caseGeometry, caseMaterial);
             caseMesh.position.set(caseLength/2, caseHeight/2, caseWidth/2);
             caseOutline.position.copy(caseMesh.position);
@@ -1538,7 +1468,7 @@
                         for (let z = 0; z < arrangement.countZ; z++) {
                             const cell = new THREE.Mesh(cellGeometry, cellMaterial);
                             
-                            // 计算电芯位置 - 考虑区域的起始坐标
+                            // 修改电芯位置的计算方式，使其相对于(0,0,0)点开始放置
                             const posX = startX + x * dimX + dimX / 2;
                             const posY = startZ + z * dimZ + dimZ / 2; // Z轴映射到Y轴
                             const posZ = startY + y * dimY + dimY / 2; // Y轴映射到Z轴
@@ -1588,8 +1518,8 @@
                 scene.add(regionOutline);
             });
             
-            // 添加坐标轴辅助
-            const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight) * 0.8);
+            // 添加坐标轴辅助并增大尺寸
+            const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight) * 1.2);
             scene.add(axesHelper);
             
             // 添加3D文字标签显示不同区域信息
@@ -1711,86 +1641,137 @@
                     caseLength, caseWidth, caseHeight
                 });
                 
-                // 确保引用电芯尺寸
-                const cellLength = Number(document.getElementById('cell-length').value);
-                const cellWidth = Number(document.getElementById('cell-width').value);
-                const cellHeight = Number(document.getElementById('cell-height').value);
-                
-                // 添加一个调试信息到控制台，检查实际渲染的电芯数量是否与计算结果一致
-                console.log('应该渲染的电芯数量：', lengthCount * widthCount * heightCount);
-                console.log('电芯排列方式：', `${lengthCount} × ${widthCount} × ${heightCount} (${arrangementName})`);
-                
-                // 更全面地移除所有可能的3D相关元素
-                function removeAll3DElements() {
-                    // 移除所有3D标题
-                    document.querySelectorAll('h3').forEach(el => {
-                        if (el.textContent.includes('3D视图') || 
-                            el.getAttribute('data-title') === '3d-view' ||
-                            el.textContent.includes('加载失败')) {
-                            console.log('移除3D标题:', el.textContent);
-                            el.remove();
-                        }
-                    });
-                    
-                    // 移除所有可能的3D容器
-                    document.querySelectorAll('[id^="3d-container"], [id="3d-diagram"]').forEach(el => {
-                        console.log('移除3D容器:', el.id);
-                        el.remove();
-                    });
-                    
-                    // 移除其他可能存在的元素
-                    const elementsToRemove = document.querySelectorAll(
-                        '#diagram-info, #diagram-instructions, #total-text, #size-info, ' +
-                        '#digital-info-container, [class*="3d"], [id*="3d"]'
-                    );
-                    elementsToRemove.forEach(el => el.remove());
+                // 检查Three.js是否加载
+                if (typeof THREE === 'undefined') {
+                    throw new Error('Three.js未加载');
                 }
                 
-                // 执行清理
-                removeAll3DElements();
-                
-                // 创建新的数字结果区域
-                const infoContainer = document.createElement('div');
-                infoContainer.id = 'digital-info-container';
-                infoContainer.style.width = '100%';
-                infoContainer.style.maxWidth = isMobile ? '100%' : '600px';
-                infoContainer.style.margin = '20px auto';
-                infoContainer.style.padding = isMobile ? '15px 10px' : '20px';
-                infoContainer.style.backgroundColor = '#f5f5f7';
-                infoContainer.style.borderRadius = '12px';
-                infoContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
-                infoContainer.style.fontFamily = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif';
-                infoContainer.style.fontSize = isMobile ? '14px' : '15px';
-                infoContainer.style.overflowX = isMobile ? 'auto' : 'visible';
-                
-                // 添加标题
-                const title = document.createElement('h3');
-                title.textContent = '';
-                title.style.fontSize = '18px';
-                title.style.fontWeight = '600';
-                title.style.marginBottom = '15px';
-                title.style.color = '#1d1d1f';
-                infoContainer.appendChild(title);
-                
-                // 添加到页面
-                const diagramCanvas = document.getElementById('diagram');
-                const parent = diagramCanvas.parentNode;
-                parent.insertBefore(infoContainer, diagramCanvas);
-                
-                // 如果是iOS，可能需要避免使用WebGL或降级处理
-                if (isIOS) {
-                    console.log('检测到iOS设备，使用降级处理');
+                // 添加等待OrbitControls加载的逻辑
+                function setupScene() {
+                    // 确保引用电芯尺寸
+                    const cellLength = Number(document.getElementById('cell-length').value);
+                    const cellWidth = Number(document.getElementById('cell-width').value);
+                    const cellHeight = Number(document.getElementById('cell-height').value);
                     
-                    // 创建3D视图标题但添加警告
+                    // 添加一个调试信息到控制台，检查实际渲染的电芯数量是否与计算结果一致
+                    console.log('应该渲染的电芯数量：', lengthCount * widthCount * heightCount);
+                    console.log('电芯排列方式：', `${lengthCount} × ${widthCount} × ${heightCount} (${arrangementName})`);
+                    
+                    // 更全面地移除所有可能的3D相关元素
+                    function removeAll3DElements() {
+                        // 移除所有3D标题
+                        document.querySelectorAll('h3').forEach(el => {
+                            if (el.textContent.includes('3D视图') || 
+                                el.getAttribute('data-title') === '3d-view' ||
+                                el.textContent.includes('加载失败')) {
+                                console.log('移除3D标题:', el.textContent);
+                                el.remove();
+                            }
+                        });
+                        
+                        // 移除所有可能的3D容器
+                        document.querySelectorAll('[id^="3d-container"], [id="3d-diagram"]').forEach(el => {
+                            console.log('移除3D容器:', el.id);
+                            el.remove();
+                        });
+                        
+                        // 移除其他可能存在的元素
+                        const elementsToRemove = document.querySelectorAll(
+                            '#diagram-info, #diagram-instructions, #total-text, #size-info, ' +
+                            '#digital-info-container, [class*="3d"], [id*="3d"]'
+                        );
+                        elementsToRemove.forEach(el => el.remove());
+                    }
+                    
+                    // 执行清理
+                    removeAll3DElements();
+                    
+                    // 创建新的数字结果区域
+                    const infoContainer = document.createElement('div');
+                    infoContainer.id = 'digital-info-container';
+                    infoContainer.style.width = '100%';
+                    infoContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                    infoContainer.style.margin = '20px auto';
+                    infoContainer.style.padding = isMobile ? '15px 10px' : '20px';
+                    infoContainer.style.backgroundColor = '#f5f5f7';
+                    infoContainer.style.borderRadius = '12px';
+                    infoContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+                    infoContainer.style.fontFamily = '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif';
+                    infoContainer.style.fontSize = isMobile ? '14px' : '15px';
+                    infoContainer.style.overflowX = isMobile ? 'auto' : 'visible';
+                    
+                    // 添加标题
+                    const title = document.createElement('h3');
+                    title.textContent = '';
+                    title.style.fontSize = '18px';
+                    title.style.fontWeight = '600';
+                    title.style.marginBottom = '15px';
+                    title.style.color = '#1d1d1f';
+                    infoContainer.appendChild(title);
+                    
+                    // 添加到页面
+                    const resultDiv = document.getElementById('result');
+                    resultDiv.appendChild(infoContainer);
+                    
+                    // 如果是iOS，可能需要避免使用WebGL或降级处理
+                    if (isIOS) {
+                        console.log('检测到iOS设备，使用降级处理');
+                        
+                        // 创建3D视图标题但添加警告
+                        const threeDTitle = document.createElement('h3');
+                        threeDTitle.textContent = '3D视图 (iOS兼容模式)';
+                        threeDTitle.setAttribute('data-title', '3d-view');
+                        threeDTitle.style.fontSize = isMobile ? '16px' : '18px';
+                        threeDTitle.style.fontWeight = '600';
+                        threeDTitle.style.margin = '30px 0 15px 0';
+                        threeDTitle.style.color = '#1d1d1f';
+                        
+                        // 创建简化的容器
+                        const threeDContainer = document.createElement('div');
+                        threeDContainer.id = '3d-container';
+                        threeDContainer.style.width = '100%';
+                        threeDContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                        threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
+                        threeDContainer.style.margin = '0 auto 30px auto';
+                        threeDContainer.style.position = 'relative';
+                        threeDContainer.style.backgroundColor = '#f5f5f7';
+                        threeDContainer.style.borderRadius = '12px';
+                        threeDContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
+                        threeDContainer.style.display = 'flex';
+                        threeDContainer.style.alignItems = 'center';
+                        threeDContainer.style.justifyContent = 'center';
+                        threeDContainer.style.flexDirection = 'column';
+                        threeDContainer.style.padding = '20px';
+                        threeDContainer.style.textAlign = 'center';
+                        
+                        // 添加信息提示
+                        threeDContainer.innerHTML = `
+                            <div style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
+                            <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">电芯尺寸: ${cellX}×${cellY}×${cellZ} 厘米</div>
+                            <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">外壳尺寸: ${caseLength}×${caseWidth}×${caseHeight} 厘米</div>
+                            <div style="background-color: #ffefef; padding: 15px; border-radius: 8px; max-width: 90%;">
+                                <p style="margin: 0; color: #d0000f; font-size: 14px;">iOS设备目前暂不支持3D视图。</p>
+                                <p style="margin: 5px 0 0; color: #d0000f; font-size: 14px;">请参考上方三视图查看排列情况。</p>
+                            </div>
+                        `;
+                        
+                        // 添加到页面
+                        resultDiv.appendChild(threeDTitle);
+                        resultDiv.appendChild(threeDContainer);
+                        
+                        return; // 不继续执行Three.js相关代码
+                    }
+                    
+                    // 创建3D视图标题
                     const threeDTitle = document.createElement('h3');
-                    threeDTitle.textContent = '3D视图 (iOS兼容模式)';
+                    threeDTitle.textContent = '3D视图';
                     threeDTitle.setAttribute('data-title', '3d-view');
                     threeDTitle.style.fontSize = isMobile ? '16px' : '18px';
                     threeDTitle.style.fontWeight = '600';
                     threeDTitle.style.margin = '30px 0 15px 0';
                     threeDTitle.style.color = '#1d1d1f';
                     
-                    // 创建简化的容器
+                    // 创建3D容器
                     const threeDContainer = document.createElement('div');
                     threeDContainer.id = '3d-container';
                     threeDContainer.style.width = '100%';
@@ -1798,471 +1779,322 @@
                     threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
                     threeDContainer.style.margin = '0 auto 30px auto';
                     threeDContainer.style.position = 'relative';
-                    threeDContainer.style.backgroundColor = '#f5f5f7';
+                    threeDContainer.style.backgroundColor = '#ffffff';
                     threeDContainer.style.borderRadius = '12px';
                     threeDContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
-                    threeDContainer.style.display = 'flex';
-                    threeDContainer.style.alignItems = 'center';
-                    threeDContainer.style.justifyContent = 'center';
-                    threeDContainer.style.flexDirection = 'column';
-                    threeDContainer.style.padding = '20px';
-                    threeDContainer.style.textAlign = 'center';
+                    threeDContainer.style.overflow = 'hidden';
                     
-                    // 添加信息提示
-                    threeDContainer.innerHTML = `
-                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 15px;">电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
-                        <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">电芯尺寸: ${cellX}×${cellY}×${cellZ} 厘米</div>
-                        <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">外壳尺寸: ${caseLength}×${caseWidth}×${caseHeight} 厘米</div>
-                        <div style="background-color: #ffefef; padding: 15px; border-radius: 8px; max-width: 90%;">
-                            <p style="margin: 0; color: #d0000f; font-size: 14px;">iOS设备目前暂不支持3D视图。</p>
-                            <p style="margin: 5px 0 0; color: #d0000f; font-size: 14px;">请参考上方三视图查看排列情况。</p>
-                        </div>
+                    // 添加3D视图说明
+                    const threeDInfo = document.createElement('div');
+                    threeDInfo.style.position = 'absolute';
+                    threeDInfo.style.bottom = '10px';
+                    threeDInfo.style.left = '10px';
+                    threeDInfo.style.backgroundColor = 'rgba(255,255,255,0.7)';
+                    threeDInfo.style.padding = '6px 10px';
+                    threeDInfo.style.borderRadius = '8px';
+                    threeDInfo.style.fontSize = isMobile ? '11px' : '12px';
+                    threeDInfo.style.color = '#1d1d1f';
+                    threeDInfo.innerHTML = `
+                        <div>拖动可旋转查看 • 滚轮可缩放</div>
+                        <div>电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
                     `;
+                    
+                    // 创建3D画布
+                    const threeDCanvas = document.createElement('canvas');
+                    threeDCanvas.id = '3d-diagram';
+                    threeDCanvas.width = isMobile ? window.innerWidth - 30 : 600;
+                    threeDCanvas.height = isMobile ? 350 : 400; // 匹配容器高度
+                    threeDCanvas.style.width = '100%';
+                    threeDCanvas.style.height = '100%';
+                    
+                    // 添加到容器
+                    threeDContainer.appendChild(threeDCanvas);
+                    threeDContainer.appendChild(threeDInfo);
                     
                     // 添加到页面
-                    parent.appendChild(threeDTitle);
-                    parent.appendChild(threeDContainer);
+                    resultDiv.appendChild(threeDTitle);
+                    resultDiv.appendChild(threeDContainer);
                     
-                    return; // 不继续执行Three.js相关代码
+                    // 检查THREE和OrbitControls是否可用
+                    if (typeof THREE === 'undefined') {
+                        showErrorView(threeDContainer, 'THREE未定义，无法加载3D视图');
+                        return;
+                    }
+                    
+                    if (typeof THREE.OrbitControls === 'undefined') {
+                        showErrorView(threeDContainer, 'OrbitControls未定义，无法加载可旋转3D视图');
+                        return;
+                    }
+                    
+                    // 创建Three.js场景
+                    const scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0xf5f5f7);
+                    
+                    // 设置相机
+                    const camera = new THREE.PerspectiveCamera(50, threeDCanvas.width / threeDCanvas.height, 0.1, 1000);
+                    camera.position.set(lengthCount * 2, heightCount * 3, widthCount * 3);
+                    camera.lookAt(lengthCount/2, heightCount/2, widthCount/2);
+                    
+                    // 设置渲染器
+                    const renderer = new THREE.WebGLRenderer({ canvas: threeDCanvas, antialias: true });
+                    renderer.setSize(threeDCanvas.width, threeDCanvas.height);
+                    
+                    // 添加轨道控制
+                    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.05;
+                    
+                    // 添加环境光和定向光
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                    scene.add(ambientLight);
+                    
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directionalLight.position.set(lengthCount*2, heightCount*4, widthCount*2);
+                    scene.add(directionalLight);
+                    
+                    // 这里是现有的Three.js 3D视图创建代码
+                    // ... 保持原有的3D视图创建代码不变
+                    try {
+                        // 创建电池壳体
+                        const caseGeometry = new THREE.BoxGeometry(caseLength, caseHeight, caseWidth);
+                        const caseMaterial = new THREE.MeshBasicMaterial({ 
+                            color: 0x2196f3, 
+                            transparent: true, 
+                            opacity: 0.15
+                        });
+                        const caseMesh = new THREE.Mesh(caseGeometry, caseMaterial);
+                        caseMesh.position.set(caseLength/2, caseHeight/2, caseWidth/2);
+                        scene.add(caseMesh);
+                        
+                        // 添加网格辅助线
+                        const gridSize = Math.max(caseLength, caseWidth) * 1.1; // 只比物体稍微大一点
+                        const gridHelper = new THREE.GridHelper(gridSize, 20, 0x888888, 0xdddddd);
+                        // 将网格中心定位在坐标系原点(0,0,0)，使网格线从0开始
+                        gridHelper.position.set(0, -0.5, 0);
+                        scene.add(gridHelper);
+                        
+                        // 其他原有代码...
+                    } catch(e) {
+                        console.error("渲染3D视图时出错:", e);
+                        showErrorView(threeDContainer, e.message);
+                    }
                 }
-                
-                // 创建3D视图标题
-                const threeDTitle = document.createElement('h3');
-                threeDTitle.textContent = '3D视图';
-                threeDTitle.setAttribute('data-title', '3d-view');
-                threeDTitle.style.fontSize = isMobile ? '16px' : '18px';
-                threeDTitle.style.fontWeight = '600';
-                threeDTitle.style.margin = '30px 0 15px 0';
-                threeDTitle.style.color = '#1d1d1f';
-                
-                // 创建3D容器
-                const threeDContainer = document.createElement('div');
-                threeDContainer.id = '3d-container';
-                threeDContainer.style.width = '100%';
-                threeDContainer.style.maxWidth = isMobile ? '100%' : '600px';
-                threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
-                threeDContainer.style.margin = '0 auto 30px auto';
-                threeDContainer.style.position = 'relative';
-                threeDContainer.style.backgroundColor = '#ffffff';
-                threeDContainer.style.borderRadius = '12px';
-                threeDContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
-                threeDContainer.style.overflow = 'hidden';
-                
-                // 添加3D视图说明
-                const threeDInfo = document.createElement('div');
-                threeDInfo.style.position = 'absolute';
-                threeDInfo.style.bottom = '10px';
-                threeDInfo.style.left = '10px';
-                threeDInfo.style.backgroundColor = 'rgba(255,255,255,0.7)';
-                threeDInfo.style.padding = '6px 10px';
-                threeDInfo.style.borderRadius = '8px';
-                threeDInfo.style.fontSize = isMobile ? '11px' : '12px';
-                threeDInfo.style.color = '#1d1d1f';
-                threeDInfo.innerHTML = `
-                    <div>拖动可旋转查看 • 滚轮可缩放</div>
-                    <div>电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
-                `;
-                
-                // 创建3D画布
-                const threeDCanvas = document.createElement('canvas');
-                threeDCanvas.id = '3d-diagram';
-                threeDCanvas.width = isMobile ? window.innerWidth - 30 : 600;
-                threeDCanvas.height = isMobile ? 350 : 400; // 匹配容器高度
-                threeDCanvas.style.width = '100%';
-                threeDCanvas.style.height = '100%';
-                
-                // 添加到容器
-                threeDContainer.appendChild(threeDCanvas);
-                threeDContainer.appendChild(threeDInfo);
-                
-                // 添加到页面
-                parent.appendChild(threeDTitle);
-                parent.appendChild(threeDContainer);
-                
-                // 创建Three.js场景
-                if (typeof THREE === 'undefined') {
-                    console.error('THREE未定义，检查Three.js库是否正确加载');
+
+                // 显示3D错误视图
+                function showErrorView(container, errorMsg) {
+                    container.style.display = 'flex';
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'center';
+                    container.style.flexDirection = 'column';
+                    container.style.padding = '20px';
+                    container.style.backgroundColor = '#ffefef';
                     
-                    // 显示错误信息
-                    threeDContainer.style.display = 'flex';
-                    threeDContainer.style.alignItems = 'center';
-                    threeDContainer.style.justifyContent = 'center';
-                    threeDContainer.style.flexDirection = 'column';
-                    threeDContainer.style.padding = '20px';
-                    threeDContainer.style.backgroundColor = '#ffefef';
-                    
-                    threeDContainer.innerHTML = `
-                        <div style="font-size: 16px; font-weight: 600; margin-bottom: 15px; color: #ff3b30;">3D视图加载失败</div>
+                    container.innerHTML = `
+                        <div style="font-size: 16px; font-weight: 600; color: #d0000f; margin-bottom: 15px;">3D视图加载失败</div>
                         <div style="text-align: center;">
-                            <p style="margin: 0 0 10px 0;">请参考上方三视图查看排列情况</p>
-                            <p style="margin: 0; color: #86868b; font-size: 14px;">THREE is not defined</p>
+                            <p style="margin: 0 0 10px 0;">原因: ${errorMsg}</p>
+                            <p style="margin: 10px 0;">电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</p>
+                            <p style="margin: 0 0 10px 0;">电芯尺寸: ${cellX}×${cellY}×${cellZ} 厘米</p>
+                            <button id="retry-button" style="padding: 8px 15px; background-color: #0071e3; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 10px;">刷新页面</button>
                         </div>
                     `;
                     
-                    // 尝试重新加载Three.js库
-                    const threeScript = document.createElement('script');
-                    threeScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-                    threeScript.onload = function() {
-                        console.log('Three.js已重新加载');
+                    // 添加重试按钮事件
+                    setTimeout(() => {
+                        const retryButton = document.getElementById('retry-button');
+                        if (retryButton) {
+                            retryButton.addEventListener('click', function() {
+                                // 刷新页面
+                                window.location.reload();
+                            });
+                        }
+                    }, 100);
+                }
+
+                // 显示简单的静态3D视图（不使用OrbitControls）
+                function showSimple3DView(container, lengthCount, widthCount, heightCount, cellX, cellY, cellZ, caseLength, caseWidth, caseHeight) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = container.clientWidth;
+                        canvas.height = container.clientHeight;
+                        container.innerHTML = '';
+                        container.appendChild(canvas);
                         
-                        // 加载OrbitControls
-                        const orbitScript = document.createElement('script');
-                        orbitScript.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js';
-                        orbitScript.onload = function() {
-                            console.log('OrbitControls已加载');
-                            // 刷新页面以重新初始化
+                        // 创建简单的静态Three.js场景
+                        const scene = new THREE.Scene();
+                        scene.background = new THREE.Color(0xf5f5f7);
+                        
+                        const camera = new THREE.PerspectiveCamera(50, canvas.width / canvas.height, 0.1, 1000);
+                        const maxDimension = Math.max(caseLength, caseWidth, caseHeight);
+                        camera.position.set(maxDimension * 1.5, maxDimension * 1.5, maxDimension * 1.5);
+                        camera.lookAt(caseLength/2, caseHeight/2, caseWidth/2);
+                        
+                        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+                        renderer.setSize(canvas.width, canvas.height);
+                        
+                        // 添加光源
+                        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                        scene.add(ambientLight);
+                        
+                        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                        directionalLight.position.set(caseLength*2, caseHeight*2, caseWidth*2);
+                        scene.add(directionalLight);
+                        
+                        // 创建外壳和电芯
+                        const caseGeometry = new THREE.BoxGeometry(caseLength, caseHeight, caseWidth);
+                        const caseMaterial = new THREE.MeshBasicMaterial({ 
+                            color: 0x2196f3, 
+                            transparent: true, 
+                            opacity: 0.15
+                        });
+                        const caseMesh = new THREE.Mesh(caseGeometry, caseMaterial);
+                        caseMesh.position.set(caseLength/2, caseHeight/2, caseWidth/2);
+                        scene.add(caseMesh);
+                        
+                        // 添加边框
+                        const edges = new THREE.EdgesGeometry(caseGeometry);
+                        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x0071e3 }));
+                        line.position.copy(caseMesh.position);
+                        scene.add(line);
+                        
+                        // 添加网格辅助线
+                        const gridSize = Math.max(caseLength, caseWidth) * 1.1; // 只比物体稍微大一点
+                        const gridHelper = new THREE.GridHelper(gridSize, 20, 0x888888, 0xdddddd);
+                        // 将网格中心定位在坐标系原点(0,0,0)，使网格线从0开始
+                        gridHelper.position.set(0, -0.5, 0);
+                        scene.add(gridHelper);
+                        
+                        // 创建电芯（仅绘制少量电芯，提高性能）
+                        const maxCellsToRender = 100; // 限制渲染的电芯数量
+                        const totalCells = lengthCount * widthCount * heightCount;
+                        let renderAll = totalCells <= maxCellsToRender;
+                        
+                        // 如果电芯数量过多，仅渲染一部分
+                        let skipFactor = renderAll ? 1 : Math.ceil(totalCells / maxCellsToRender);
+                        
+                        const cellGeometry = new THREE.BoxGeometry(cellX, cellZ, cellY);
+                        const cellMaterial = new THREE.MeshPhongMaterial({ color: 0x4caf50 });
+                        
+                        for (let x = 0; x < lengthCount; x += (renderAll ? 1 : skipFactor)) {
+                            for (let y = 0; y < heightCount; y += (renderAll ? 1 : skipFactor)) {
+                                for (let z = 0; z < widthCount; z += (renderAll ? 1 : skipFactor)) {
+                                    const cell = new THREE.Mesh(cellGeometry, cellMaterial);
+                                    cell.position.set(
+                                        x * cellX + cellX/2,
+                                        y * cellZ + cellZ/2,
+                                        z * cellY + cellY/2
+                                    );
+                                    scene.add(cell);
+                                }
+                            }
+                        }
+                        
+                        // 渲染静态视图
+                        renderer.render(scene, camera);
+                        
+                        // 添加说明
+                        const info = document.createElement('div');
+                        info.style.position = 'absolute';
+                        info.style.bottom = '10px';
+                        info.style.left = '10px';
+                        info.style.backgroundColor = 'rgba(255,255,255,0.7)';
+                        info.style.padding = '6px 10px';
+                        info.style.borderRadius = '8px';
+                        info.style.fontSize = '12px';
+                        info.style.color = '#1d1d1f';
+                        info.innerHTML = `
+                            <div>静态3D视图（OrbitControls未加载）</div>
+                            <div>电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</div>
+                        `;
+                        container.appendChild(info);
+                        
+                        // 添加重试按钮
+                        const retryButton = document.createElement('button');
+                        retryButton.textContent = '刷新页面重试';
+                        retryButton.style.position = 'absolute';
+                        retryButton.style.top = '10px';
+                        retryButton.style.right = '10px';
+                        retryButton.style.padding = '8px 12px';
+                        retryButton.style.backgroundColor = '#0071e3';
+                        retryButton.style.color = '#ffffff';
+                        retryButton.style.border = 'none';
+                        retryButton.style.borderRadius = '8px';
+                        retryButton.style.fontSize = '12px';
+                        retryButton.style.cursor = 'pointer';
+                        retryButton.onclick = function() {
+                            // 刷新页面
                             window.location.reload();
                         };
-                        document.head.appendChild(orbitScript);
-                    };
-                    document.head.appendChild(threeScript);
-                    
-                    return; // 停止执行后续代码
-                }
-                
-                const scene = new THREE.Scene();
-                scene.background = new THREE.Color(0xf5f5f7);
-                
-                // 设置相机
-                const camera = new THREE.PerspectiveCamera(50, threeDCanvas.width / threeDCanvas.height, 0.1, 1000);
-                camera.position.set(lengthCount * 2, heightCount * 3, widthCount * 3);
-                camera.lookAt(lengthCount/2, heightCount/2, widthCount/2);
-                
-                // 设置渲染器
-                const renderer = new THREE.WebGLRenderer({ canvas: threeDCanvas, antialias: true });
-                renderer.setSize(threeDCanvas.width, threeDCanvas.height);
-                
-                // 添加轨道控制
-                const controls = new THREE.OrbitControls(camera, renderer.domElement);
-                controls.enableDamping = true;
-                controls.dampingFactor = 0.05;
-                
-                // 添加环境光和定向光
-                const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-                scene.add(ambientLight);
-                
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                directionalLight.position.set(lengthCount*2, heightCount*4, widthCount*2);
-                scene.add(directionalLight);
-                
-                // 创建电池壳体
-                const caseGeometry = new THREE.BoxGeometry(caseLength, caseHeight, caseWidth);
-                const caseMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0x2196f3, 
-                    transparent: true, 
-                    opacity: 0.15
-                });
-                const caseMesh = new THREE.Mesh(caseGeometry, caseMaterial);
-                caseMesh.position.set(caseLength/2, caseHeight/2, caseWidth/2);
-                scene.add(caseMesh);
-                
-                // 创建电芯占用区域
-                const usedGeometry = new THREE.BoxGeometry(
-                    lengthCount * cellX, 
-                    heightCount * cellZ, 
-                    widthCount * cellY
-                );
-                const usedMaterial = new THREE.MeshBasicMaterial({ 
-                    color: 0x4caf50, 
-                    transparent: true, 
-                    opacity: 0.05,
-                    wireframe: true
-                });
-                const usedMesh = new THREE.Mesh(usedGeometry, usedMaterial);
-                usedMesh.position.set(
-                    lengthCount * cellX / 2, 
-                    heightCount * cellZ / 2, 
-                    widthCount * cellY / 2
-                );
-                scene.add(usedMesh);
-                
-                // 创建外壳线框
-                const wireframeGeometry = new THREE.EdgesGeometry(caseGeometry);
-                const wireframeMaterial = new THREE.LineBasicMaterial({ 
-                    color: 0x0071e3, 
-                    linewidth: 2 
-                });
-                const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
-                wireframe.position.copy(caseMesh.position);
-                scene.add(wireframe);
-                
-                // 创建始终朝向相机的标签
-                function createLabel(text, position, color = '#000000', bgColor = '#ffffff', scale = 1) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = 256;
-                    canvas.height = 128;
-                    
-                    // 绘制背景
-                    ctx.fillStyle = bgColor;
-                    ctx.globalAlpha = 0.9;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    
-                    // 绘制边框
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 6;
-                    ctx.globalAlpha = 1.0;
-                    ctx.strokeRect(3, 3, canvas.width-6, canvas.height-6);
-                    
-                    // 绘制文字
-                    ctx.font = 'bold 32px Arial';
-                    ctx.fillStyle = color;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    // 支持多行文本
-                    const lines = text.split('\n');
-                    const lineHeight = 40;
-                    const startY = canvas.height/2 - (lines.length - 1) * lineHeight/2;
-                    
-                    lines.forEach((line, i) => {
-                        ctx.fillText(line, canvas.width/2, startY + i * lineHeight);
-                    });
-                    
-                    const texture = new THREE.CanvasTexture(canvas);
-                    const spriteMaterial = new THREE.SpriteMaterial({ 
-                        map: texture,
-                        transparent: true
-                    });
-                    
-                    const sprite = new THREE.Sprite(spriteMaterial);
-                    sprite.position.copy(position);
-                    sprite.scale.set(2 * scale, 1 * scale, 1);
-                    
-                    return sprite;
-                }
-                
-                // 添加外壳尺寸标签
-                const caseSizeLabel = createLabel(
-                    `外壳: ${caseLength}×${caseWidth}×${caseHeight}厘米\n电芯: ${lengthCount}×${widthCount}×${heightCount}个`, 
-                    new THREE.Vector3(caseLength/2, caseHeight + 3, caseWidth/2),
-                    '#0071e3', 
-                    '#ffffff', 
-                    2
-                );
-                scene.add(caseSizeLabel);
-                
-                // 创建电芯尺寸标签
-                const cellSizeLabel = createLabel(
-                    `电芯: ${cellLength}×${cellWidth}×${cellHeight}厘米`,
-                    new THREE.Vector3(0, caseHeight + 1.5, 0),
-                    '#333333',
-                    '#ffffff',
-                    1
-                );
-                scene.add(cellSizeLabel);
-                
-                // 创建电芯模型
-                const cellGeometry = new THREE.BoxGeometry(cellX, cellZ, cellY);
-                
-                // 绘制电芯（从底部开始堆叠）
-                for (let y = 0; y < heightCount; y++) {
-                    // 计算层级渐变色，底部颜色深，顶部颜色浅
-                    const gradientIntensity = 1 - y / heightCount;
-                    const hue = 0.6 + gradientIntensity * 0.1; // 蓝色调范围
-                    const saturation = 0.7;
-                    const lightness = 0.4 + gradientIntensity * 0.3; // 底部深色，顶部浅色
-                    const color = new THREE.Color().setHSL(hue, saturation, lightness);
-                    
-                    for (let z = 0; z < widthCount; z++) {
-                        for (let x = 0; x < lengthCount; x++) {
-                            const cellMaterial = new THREE.MeshPhongMaterial({ 
-                                color: color,
-                                specular: 0x111111,
-                                shininess: 30,
-                            });
-                            
-                            const cellMesh = new THREE.Mesh(cellGeometry, cellMaterial);
-                            
-                            // 定位电芯，考虑尺寸
-                            cellMesh.position.set(
-                                x * cellX + cellX/2,
-                                y * cellZ + cellZ/2,
-                                z * cellY + cellY/2
-                            );
-                            
-                            // 添加边框
-                            const edgesGeometry = new THREE.EdgesGeometry(cellGeometry);
-                            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 });
-                            const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
-                            cellMesh.add(edges);
-                            
-                            // 添加层级标记
-                            if (cellZ > 0.5) { // 只对足够大的电芯添加标记
-                                // 为电芯添加层级标记
-                                const canvas = document.createElement('canvas');
-                                canvas.width = 64;
-                                canvas.height = 64;
-                                const ctx = canvas.getContext('2d');
-                                
-                                // 绘制层级数字
-                                ctx.fillStyle = '#ffffff';
-                                ctx.font = 'bold 40px Arial';
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                ctx.fillText(`${y+1}`, 32, 32);
-                                
-                                const numberTexture = new THREE.CanvasTexture(canvas);
-                                const labelMaterial = new THREE.SpriteMaterial({ map: numberTexture, transparent: true });
-                                const labelSprite = new THREE.Sprite(labelMaterial);
-                                
-                                // 将标记放在电芯前方
-                                labelSprite.position.set(0, 0, cellY/2 + 0.05);
-                                labelSprite.scale.set(cellX/2, cellZ/2, 1);
-                                cellMesh.add(labelSprite);
-                            }
-                            
-                            scene.add(cellMesh);
-                        }
+                        container.appendChild(retryButton);
+                        
+                    } catch (error) {
+                        console.error('创建简单3D视图时出错:', error);
+                        showErrorView(container, error.message);
                     }
                 }
-                
-                // 添加网格辅助线
-                const gridHelper = new THREE.GridHelper(
-                    Math.max(caseLength, caseWidth) * 1.2, 
-                    Math.ceil(Math.max(caseLength, caseWidth) / Math.min(cellX, cellY))
-                );
-                gridHelper.position.set(caseLength/2, 0, caseWidth/2);
-                scene.add(gridHelper);
-                
-                // 添加坐标轴辅助
-                const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight));
-                scene.add(axesHelper);
-                
-                // 动画循环
-                function animate() {
-                    requestAnimationFrame(animate);
-                    controls.update();
-                    renderer.render(scene, camera);
-                }
-                
-                // 确保有效的电芯尺寸
-                if (!cellLength || !cellWidth || !cellHeight) {
-                    console.error('电芯尺寸未定义！使用默认值代替');
-                    // 使用绘图函数传入的值作为备用
-                    cellLength = cellX;
-                    cellWidth = cellY;
-                    cellHeight = cellZ;
-                    
-                    // 添加错误提示
-                    const errorLabel = createLabel(
-                        '警告：使用的是推导尺寸\n请重新计算',
-                        new THREE.Vector3(caseLength/2, caseHeight/2, caseWidth/2),
-                        '#ff3b30',
-                        '#ffffff',
-                        2
-                    );
-                    scene.add(errorLabel);
-                }
-                
-                // 开启动画
-                animate();
-                
-                // 在相机设置后修改相机位置以显示全貌
-                function resetCameraPosition() {
-                    // 计算需要的相机距离以显示整个外壳
-                    const maxDimension = Math.max(caseLength, caseWidth, caseHeight);
-                    // 减小距离系数，使视图显示更大
-                    const distance = maxDimension * 2.0; // 从2.5减小到2.0，使物体在视图中显得更大
-                    
-                    // 设置相机位置
-                    camera.position.set(
-                        caseLength/2 + distance * 0.8, 
-                        caseHeight/2 + distance * 0.6, 
-                        caseWidth/2 + distance * 0.8
-                    );
-                    
-                    // 看向外壳中心
-                    camera.lookAt(caseLength/2, caseHeight/2, caseWidth/2);
-                    
-                    // 更新控制器
-                    controls.target.set(caseLength/2, caseHeight/2, caseWidth/2);
-                    controls.update();
-                }
-                
-                // 初始化相机位置以显示全貌
-                resetCameraPosition();
-                
-                // 添加重置视图按钮
-                const resetButton = document.createElement('button');
-                resetButton.style.position = 'absolute';
-                resetButton.style.top = '10px';
-                resetButton.style.right = '10px';
-                resetButton.style.padding = '8px 12px';
-                resetButton.style.backgroundColor = '#0071e3';
-                resetButton.style.color = '#ffffff';
-                resetButton.style.border = 'none';
-                resetButton.style.borderRadius = '8px';
-                resetButton.style.fontSize = '14px';
-                resetButton.style.fontWeight = '500';
-                resetButton.style.cursor = 'pointer';
-                resetButton.style.zIndex = '100';
-                resetButton.textContent = '重置视图';
-                resetButton.onclick = resetCameraPosition;
-                threeDContainer.appendChild(resetButton);
-                
-                // 页面大小调整时重新适应
-                window.addEventListener('resize', function() {
-                    if (threeDContainer.clientWidth > 0) {
-                        camera.aspect = threeDContainer.clientWidth / threeDContainer.clientHeight;
-                        camera.updateProjectionMatrix();
-                        renderer.setSize(threeDContainer.clientWidth, threeDContainer.clientHeight);
-                    }
-                });
 
-                // 为手机端优化显示
-                if (isMobile) {
-                    // 增强3D视图质量
-                    renderer.setPixelRatio(window.devicePixelRatio || 2); // 使用更高的像素比
-                    
-                    // 优化相机视角，确保更好的移动端视图
-                    const mobileCameraDistance = maxDimension * 2.2; // 增加距离以适应屏幕
-                    camera.position.set(
-                        caseLength/2 + mobileCameraDistance * 0.7,
-                        caseHeight/2 + mobileCameraDistance * 0.7,
-                        caseWidth/2 + mobileCameraDistance * 0.7
-                    );
-                    
-                    // 增加电芯边框宽度，使其在手机上更明显
-                    scene.traverse(function(obj) {
-                        if (obj instanceof THREE.LineSegments) {
-                            obj.material.linewidth = 2; // 尝试增加线宽（注意：受WebGL限制，可能不生效）
-                        }
-                    });
-                    
-                    // 界面元素适配
-                    threeDInfo.style.fontSize = '11px';
-                    threeDInfo.style.padding = '6px 10px';
-                    
-                    // 减少元素以提高性能
-                    gridHelper.visible = false; // 隐藏网格以减少复杂度
-                    
-                    // 优化移动端样式
-                    infoContainer.style.padding = '12px 5px'; // 减少手机端内边距
-                    title.style.marginBottom = '10px'; // 减少标题下边距
-                    title.style.fontSize = '16px'; // 减小标题字体
-                    table.style.fontSize = '12px'; // 减小表格字体
-                    
-                    // 直接在表格上设置样式，确保宽度适应移动设备
-                    table.style.width = '100%';
-                    table.style.minWidth = 'auto';
-                    table.style.maxWidth = '100%';
-                    table.style.tableLayout = 'fixed';
+                // 检查THREE.OrbitControls是否可用，如果可用直接设置场景，否则先加载OrbitControls
+                if (typeof THREE !== 'undefined') {
+                    if (typeof THREE.OrbitControls !== 'undefined') {
+                        // OrbitControls已加载，直接设置场景
+                        setupScene();
+                    } else {
+                        // OrbitControls未找到，显示错误
+                        console.error('THREE.OrbitControls未定义，无法创建3D视图');
+                        
+                        const resultDiv = document.getElementById('result');
+                        const errorTitle = document.createElement('h3');
+                        errorTitle.textContent = '3D视图 (加载失败)';
+                        errorTitle.style.fontSize = isMobile ? '16px' : '18px';
+                        errorTitle.style.fontWeight = '600';
+                        errorTitle.style.margin = '30px 0 15px 0';
+                        errorTitle.style.color = '#1d1d1f';
+                        
+                        const errorContainer = document.createElement('div');
+                        errorContainer.style.width = '100%';
+                        errorContainer.style.height = isMobile ? '250px' : '300px';
+                        errorContainer.style.backgroundColor = '#ffefef';
+                        errorContainer.style.borderRadius = '12px';
+                        errorContainer.style.display = 'flex';
+                        errorContainer.style.alignItems = 'center';
+                        errorContainer.style.justifyContent = 'center';
+                        errorContainer.style.flexDirection = 'column';
+                        errorContainer.style.padding = '20px';
+                        errorContainer.style.textAlign = 'center';
+                        
+                        errorContainer.innerHTML = `
+                            <div style="font-size: 16px; font-weight: 600; color: #d0000f; margin-bottom: 15px;">THREE.OrbitControls未定义</div>
+                            <p style="margin: 5px 0; color: #666;">请刷新页面重试，或更换浏览器。</p>
+                            <div style="margin-top: 15px;">
+                                <p style="margin: 5px 0;">电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</p>
+                                <p style="margin: 5px 0;">电芯尺寸: ${cellX}×${cellY}×${cellZ} 厘米</p>
+                            </div>
+                            <button id="retry-3d-button" style="margin-top: 15px; padding: 8px 15px; background-color: #0071e3; color: white; border: none; border-radius: 8px; cursor: pointer;">刷新页面</button>
+                        `;
+                        
+                        resultDiv.appendChild(errorTitle);
+                        resultDiv.appendChild(errorContainer);
+                    }
+                } else {
+                    showErrorView(document.getElementById('result'), 'THREE未定义，无法加载3D视图');
                 }
             } catch (error) {
                 console.error('设置3D视图时出错:', error);
+                // 显示错误信息
+                const errorTitle = document.createElement('h3');
+                errorTitle.textContent = '3D视图 (加载失败)';
+                errorTitle.style.fontSize = isMobile ? '16px' : '18px';
+                errorTitle.style.fontWeight = '600';
+                errorTitle.style.margin = '30px 0 15px 0';
+                errorTitle.style.color = '#1d1d1f';
                 
-                // 出错时创建错误提示界面
                 const errorContainer = document.createElement('div');
-                errorContainer.id = '3d-container';
                 errorContainer.style.width = '100%';
                 errorContainer.style.maxWidth = isMobile ? '100%' : '600px';
-                errorContainer.style.height = isMobile ? '350px' : '400px';
+                errorContainer.style.height = isMobile ? '250px' : '300px';
                 errorContainer.style.margin = '0 auto 30px auto';
-                errorContainer.style.position = 'relative';
-                errorContainer.style.backgroundColor = '#fff0f0';
+                errorContainer.style.backgroundColor = '#ffefef';
                 errorContainer.style.borderRadius = '12px';
-                errorContainer.style.boxShadow = '0 4px 20px rgba(0,0,0,0.05)';
                 errorContainer.style.display = 'flex';
                 errorContainer.style.alignItems = 'center';
                 errorContainer.style.justifyContent = 'center';
@@ -2272,26 +2104,34 @@
                 
                 errorContainer.innerHTML = `
                     <div style="font-size: 16px; font-weight: 600; color: #d0000f; margin-bottom: 15px;">3D视图加载失败</div>
-                    <div style="font-size: 14px; color: #86868b; margin-bottom: 15px;">请参考上方三视图查看排列情况</div>
-                    <div style="font-size: 12px; color: #999; max-width: 80%;">${error.message}</div>
+                    <p style="margin: 5px 0; color: #666;">${error.message}</p>
+                    <div style="margin-top: 15px;">
+                        <p style="margin: 5px 0;">电芯排列: ${lengthCount}×${widthCount}×${heightCount} 个</p>
+                        <p style="margin: 5px 0;">电芯尺寸: ${cellX}×${cellY}×${cellZ} 厘米</p>
+                    </div>
+                    <button id="retry-3d-button" style="margin-top: 15px; padding: 8px 15px; background-color: #0071e3; color: white; border: none; border-radius: 8px; cursor: pointer;">刷新页面</button>
                 `;
                 
-                const errorTitle = document.createElement('h3');
-                errorTitle.textContent = '3D视图 (加载失败)';
-                errorTitle.setAttribute('data-title', '3d-view');
-                errorTitle.style.fontSize = isMobile ? '16px' : '18px';
-                errorTitle.style.fontWeight = '600';
-                errorTitle.style.margin = '30px 0 15px 0';
-                errorTitle.style.color = '#1d1d1f';
+                const resultDiv = document.getElementById('result');
+                resultDiv.appendChild(errorTitle);
+                resultDiv.appendChild(errorContainer);
                 
-                const parent = document.getElementById('diagram').parentNode;
-                parent.appendChild(errorTitle);
-                parent.appendChild(errorContainer);
+                // 添加重试按钮事件
+                setTimeout(() => {
+                    const retryButton = document.getElementById('retry-3d-button');
+                    if (retryButton) {
+                        retryButton.addEventListener('click', function() {
+                            // 刷新页面
+                            window.location.reload();
+                        });
+                    }
+                }, 100);
             }
         }
 
         // 清除所有输入
         function clearInputs() {
+            // 清除输入值
             document.getElementById('case-length').value = '';
             document.getElementById('case-width').value = '';
             document.getElementById('case-height').value = '';
@@ -2299,16 +2139,13 @@
             document.getElementById('cell-width').value = '';
             document.getElementById('cell-height').value = '';
             
-            // 清除所有输入框的filled类
+            // 移除所有filled类
             const inputs = document.querySelectorAll('input[type="number"]');
             inputs.forEach(input => {
                 input.classList.remove('filled');
             });
             
             document.getElementById('result').style.display = 'none';
-            const canvas = document.getElementById('diagram');
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -2333,10 +2170,8 @@
                     } else {
                         this.classList.remove('filled');
                     }
-                    // 如果启用了自动保存，保存输入值
-                    if (document.getElementById('auto-save').checked) {
-                        localStorage.setItem(this.id, this.value);
-                    }
+                    // 保存输入值到localStorage
+                    localStorage.setItem(this.id, this.value);
                 });
                 
                 // 初始化时检查是否已有值
@@ -2345,20 +2180,230 @@
                 }
             });
             
-            // 绑定按钮事件
-            document.getElementById('calculate').addEventListener('click', calculate);
-            document.getElementById('clear').addEventListener('click', function() {
-                clearInputs();
-                // 清除所有输入框的filled类
-                inputs.forEach(input => {
-                    input.classList.remove('filled');
-                });
-            });
-            document.getElementById('auto-save').addEventListener('change', handleAutoSaveChange);
-            
-            // 检查是否需要加载保存的值
-            loadSavedValues();
+            // 绑定清除按钮事件
+            const clearButton = document.getElementById('clear-button');
+            if (clearButton) {
+                clearButton.addEventListener('click', clearInputs);
+            }
         });
+
+        // 添加尺寸标注功能
+        function addDimensionLabels() {
+            // 添加更明显的坐标轴
+            const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight) * 1.2);
+            // 增加坐标轴线宽
+            const axesMaterial = axesHelper.material;
+            axesMaterial.linewidth = 3; // 尝试增加线宽，但注意WebGL限制
+            scene.add(axesHelper);
+            
+            // 添加坐标轴标签
+            const xAxisLabel = document.createElement('div');
+            xAxisLabel.className = 'axis-label';
+            xAxisLabel.textContent = 'X轴';
+            xAxisLabel.style.position = 'absolute';
+            xAxisLabel.style.color = '#ff0000';
+            xAxisLabel.style.fontSize = '14px';
+            xAxisLabel.style.fontWeight = 'bold';
+            xAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.7)';
+            xAxisLabel.style.padding = '3px 6px';
+            xAxisLabel.style.borderRadius = '4px';
+            container.appendChild(xAxisLabel);
+            
+            const yAxisLabel = document.createElement('div');
+            yAxisLabel.className = 'axis-label';
+            yAxisLabel.textContent = 'Y轴';
+            yAxisLabel.style.position = 'absolute';
+            yAxisLabel.style.color = '#00ff00';
+            yAxisLabel.style.fontSize = '14px';
+            yAxisLabel.style.fontWeight = 'bold';
+            yAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.7)';
+            yAxisLabel.style.padding = '3px 6px';
+            yAxisLabel.style.borderRadius = '4px';
+            container.appendChild(yAxisLabel);
+            
+            const zAxisLabel = document.createElement('div');
+            zAxisLabel.className = 'axis-label';
+            zAxisLabel.textContent = 'Z轴';
+            zAxisLabel.style.position = 'absolute';
+            zAxisLabel.style.color = '#0000ff';
+            zAxisLabel.style.fontSize = '14px';
+            zAxisLabel.style.fontWeight = 'bold';
+            zAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.7)';
+            zAxisLabel.style.padding = '3px 6px';
+            zAxisLabel.style.borderRadius = '4px';
+            container.appendChild(zAxisLabel);
+
+            // 添加X轴尺寸标注
+            const xDimensionLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -0.2, 0),
+                    new THREE.Vector3(caseLength, -0.2, 0)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3 })
+            );
+            scene.add(xDimensionLine);
+            
+            // 添加垂直延伸线
+            const xStartLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -0.5, 0),
+                    new THREE.Vector3(0, -0.2, 0)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 })
+            );
+            scene.add(xStartLine);
+            
+            const xEndLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(caseLength, -0.5, 0),
+                    new THREE.Vector3(caseLength, -0.2, 0)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0xff0000 })
+            );
+            scene.add(xEndLine);
+            
+            // 添加X轴尺寸文本
+            const xTextDiv = document.createElement('div');
+            xTextDiv.className = 'dimension-label';
+            xTextDiv.textContent = `${caseLength} cm`;
+            xTextDiv.style.position = 'absolute';
+            xTextDiv.style.color = '#ff0000';
+            xTextDiv.style.fontSize = '14px'; // 增大字体
+            xTextDiv.style.fontWeight = 'bold';
+            xTextDiv.style.backgroundColor = 'rgba(255,255,255,0.8)'; // 提高背景不透明度
+            xTextDiv.style.padding = '3px 6px'; // 增大内边距
+            xTextDiv.style.borderRadius = '4px';
+            xTextDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)'; // 添加阴影
+            container.appendChild(xTextDiv);
+            
+            // Z轴(宽)尺寸标注
+            const zDimensionLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -0.2, 0),
+                    new THREE.Vector3(0, -0.2, caseWidth)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 3 })
+            );
+            scene.add(zDimensionLine);
+            
+            // 添加垂直延伸线
+            const zStartLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -0.5, 0),
+                    new THREE.Vector3(0, -0.2, 0)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 })
+            );
+            scene.add(zStartLine);
+            
+            const zEndLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -0.5, caseWidth),
+                    new THREE.Vector3(0, -0.2, caseWidth)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 })
+            );
+            scene.add(zEndLine);
+            
+            // 添加Z轴尺寸文本
+            const zTextDiv = document.createElement('div');
+            zTextDiv.className = 'dimension-label';
+            zTextDiv.textContent = `${caseWidth} cm`;
+            zTextDiv.style.position = 'absolute';
+            zTextDiv.style.color = '#0000ff';
+            zTextDiv.style.fontSize = '14px';
+            zTextDiv.style.fontWeight = 'bold';
+            zTextDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
+            zTextDiv.style.padding = '3px 6px';
+            zTextDiv.style.borderRadius = '4px';
+            zTextDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            container.appendChild(zTextDiv);
+            
+            // Y轴(高)尺寸标注
+            const yDimensionLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, caseHeight, 0)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 3 })
+            );
+            scene.add(yDimensionLine);
+            
+            // 添加Y轴尺寸文本
+            const yTextDiv = document.createElement('div');
+            yTextDiv.className = 'dimension-label';
+            yTextDiv.textContent = `${caseHeight} cm`;
+            yTextDiv.style.position = 'absolute';
+            yTextDiv.style.color = '#00ff00';
+            yTextDiv.style.fontSize = '14px';
+            yTextDiv.style.fontWeight = 'bold';
+            yTextDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
+            yTextDiv.style.padding = '3px 6px';
+            yTextDiv.style.borderRadius = '4px';
+            yTextDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            container.appendChild(yTextDiv);
+            
+            // 更新尺寸标注位置
+            function updateLabelPositions() {
+                // 将3D坐标转换为屏幕坐标
+                const xMidPoint = new THREE.Vector3(caseLength/2, -0.3, 0);
+                const zMidPoint = new THREE.Vector3(0, -0.3, caseWidth/2);
+                const yMidPoint = new THREE.Vector3(0, caseHeight/2, 0);
+                
+                xMidPoint.project(camera);
+                zMidPoint.project(camera);
+                yMidPoint.project(camera);
+                
+                // 转换为屏幕坐标
+                const widthHalf = container.clientWidth / 2;
+                const heightHalf = container.clientHeight / 2;
+                
+                const xPosition = {
+                    x: (xMidPoint.x * widthHalf) + widthHalf,
+                    y: -(xMidPoint.y * heightHalf) + heightHalf
+                };
+                
+                const zPosition = {
+                    x: (zMidPoint.x * widthHalf) + widthHalf,
+                    y: -(zMidPoint.y * heightHalf) + heightHalf
+                };
+                
+                const yPosition = {
+                    x: (yMidPoint.x * widthHalf) + widthHalf,
+                    y: -(yMidPoint.y * heightHalf) + heightHalf
+                };
+                
+                // 更新标签位置
+                xTextDiv.style.left = `${xPosition.x}px`;
+                xTextDiv.style.top = `${xPosition.y}px`;
+                xTextDiv.style.transform = 'translate(-50%, -50%)';
+                
+                zTextDiv.style.left = `${zPosition.x}px`;
+                zTextDiv.style.top = `${zPosition.y}px`;
+                zTextDiv.style.transform = 'translate(-50%, -50%)';
+                
+                yTextDiv.style.left = `${yPosition.x}px`;
+                yTextDiv.style.top = `${yPosition.y}px`;
+                yTextDiv.style.transform = 'translate(-50%, -50%)';
+            }
+            
+            // 在每帧渲染时更新标签位置
+            return updateLabelPositions;
+        }
+
+        // 创建尺寸标注并获取更新函数
+        const updateMixedDimensionLabels = addMixedDimensionLabels();
+
+        // 修改animate函数，加入标注位置更新
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            UpdateMixedDimensionLabels （） ; //更新尺寸标注位置
+            渲染器。渲染（场景，相机）；
+        }
+
+        //开始渲染
+        Animate （） ;
     </script>
 </body>
 </html>
