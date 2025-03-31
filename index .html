@@ -144,6 +144,57 @@
             max-width: 100%;
             display: block;
         }
+        .orthographic-views {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 15px auto;
+            max-width: 600px;
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .orthographic-view {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .orthographic-view canvas {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            display: block !important;
+            background-color: #ffffff !important;
+        }
+        .view-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1;
+        }
+        #3d-container {
+            margin: 20px 0;
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        #mainCanvas {
+            width: 100% !important;
+            height: 400px !important;
+            margin-bottom: 15px !important;
+            background-color: #ffffff !important;
+        }
         .saved-cell {
             margin: 20px 0;
             padding: 15px;
@@ -319,7 +370,7 @@
                 transform-origin: left top;
             }
             #3d-container {
-                height: 350px !important;
+                height: 450px !important; /* 原来是350px，改为450px */
             }
         }
 
@@ -400,6 +451,28 @@
             <button id="clear-button" onclick="clearInputs()">清除</button>
         </div>
 
+        <div id="3d-container">
+            <canvas id="mainCanvas"></canvas>
+            <div class="orthographic-views">
+                <div class="orthographic-view">
+                    <div class="view-label">主视图</div>
+                    <canvas id="frontView"></canvas>
+                </div>
+                <div class="orthographic-view">
+                    <div class="view-label">俯视图</div>
+                    <canvas id="topView"></canvas>
+                </div>
+                <div class="orthographic-view">
+                    <div class="view-label">左视图</div>
+                    <canvas id="leftView"></canvas>
+                </div>
+                <div class="orthographic-view">
+                    <div class="view-label">右视图</div>
+                    <canvas id="rightView"></canvas>
+                </div>
+            </div>
+        </div>
+
         <div id="result">
             <h3>计算结果：</h3>
             <p id="result-text"></p>
@@ -412,9 +485,53 @@
         let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         
+        // 添加Three.js相关全局变量
+        let scene, camera, renderer, controls;
+        
         // 页面加载时加载保存的电芯尺寸
         window.onload = function() {
             loadSavedDimensions();
+            // 初始化3D视图
+            if (!scene) {
+                console.log('初始化3D视图...');
+                // 创建场景
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xffffff);
+
+                // 创建相机
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.set(100, 100, 100);
+                camera.lookAt(0, 0, 0);
+
+                // 创建渲染器
+                renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('mainCanvas'), antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setClearColor(0xffffff, 1);
+
+                // 创建控制器
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.screenSpacePanning = false;
+                controls.minDistance = 50;
+                controls.maxDistance = 200;
+                controls.maxPolarAngle = Math.PI / 2;
+
+                // 添加坐标轴
+                const axesHelper = new THREE.AxesHelper(50);
+                scene.add(axesHelper);
+
+                // 添加网格
+                const gridHelper = new THREE.GridHelper(100, 20);
+                scene.add(gridHelper);
+
+                // 初始化三视图
+                initOrthographicViews();
+
+                // 开始动画循环
+                animate();
+                console.log('3D视图初始化完成');
+            }
         };
 
         // 处理回车键
@@ -489,6 +606,48 @@
                 if (!caseLength || !caseWidth || !caseHeight || !cellLength || !cellWidth || !cellHeight) {
                     alert('请填写所有尺寸！');
                     return;
+                }
+
+                // 初始化3D视图
+                if (!scene) {
+                    console.log('初始化3D视图...');
+                    // 创建场景
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0xffffff);
+
+                    // 创建相机
+                    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    camera.position.set(100, 100, 100);
+                    camera.lookAt(0, 0, 0);
+
+                    // 创建渲染器
+                    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('mainCanvas'), antialias: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setClearColor(0xffffff, 1);
+
+                    // 创建控制器
+                    controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    controls.enableDamping = true;
+                    controls.dampingFactor = 0.05;
+                    controls.screenSpacePanning = false;
+                    controls.minDistance = 50;
+                    controls.maxDistance = 200;
+                    controls.maxPolarAngle = Math.PI / 2;
+
+                    // 添加坐标轴
+                    const axesHelper = new THREE.AxesHelper(50);
+                    scene.add(axesHelper);
+
+                    // 添加网格
+                    const gridHelper = new THREE.GridHelper(100, 20);
+                    scene.add(gridHelper);
+
+                    // 初始化三视图
+                    initOrthographicViews();
+
+                    // 开始动画循环
+                    animate();
+                    console.log('3D视图初始化完成');
                 }
                 
                 // 计算电芯的6种可能摆放方向
@@ -1325,7 +1484,7 @@
                 container = document.createElement('div');
                 container.id = '3d-container';
                 container.style.width = '100%';
-                container.style.height = '500px';
+                container.style.height = '650px'; // 原来是500px，改为650px
                 container.style.marginTop = '20px';
                 container.style.marginBottom = '30px';
                 container.style.overflow = 'hidden';
@@ -1468,7 +1627,7 @@
                         for (let z = 0; z < arrangement.countZ; z++) {
                             const cell = new THREE.Mesh(cellGeometry, cellMaterial);
                             
-                            // 修改电芯位置的计算方式，使其相对于(0,0,0)点开始放置
+                            // 计算电芯位置 - 考虑区域的起始坐标
                             const posX = startX + x * dimX + dimX / 2;
                             const posY = startZ + z * dimZ + dimZ / 2; // Z轴映射到Y轴
                             const posZ = startY + y * dimY + dimY / 2; // Y轴映射到Z轴
@@ -1518,9 +1677,261 @@
                 scene.add(regionOutline);
             });
             
-            // 添加坐标轴辅助并增大尺寸
+            // 添加坐标轴辅助
             const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight) * 1.2);
             scene.add(axesHelper);
+            
+            // 添加坐标轴刻度和尺寸标注
+            function createAxisWithTicks(start, end, length, tickCount, color, labelText) {
+                const tickGroup = new THREE.Group();
+                
+                // 创建主轴线
+                const mainAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(...start),
+                    new THREE.Vector3(...end)
+                ]);
+                const mainAxisMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+                const mainAxis = new THREE.Line(mainAxisGeometry, mainAxisMaterial);
+                tickGroup.add(mainAxis);
+                
+                // 创建与轴平行的尺子背景
+                const rulerWidth = Math.min(caseLength, caseWidth, caseHeight) * 0.05; // 尺子宽度
+                const rulerLength = length;
+                let rulerGeometry, rulerPosition;
+                
+                if (start[0] !== end[0]) { // X轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerLength, rulerWidth);
+                    rulerPosition = [start[0] + rulerLength/2, start[1] - rulerWidth/2, start[2]];
+                    rulerGeometry.rotateX(-Math.PI/2);
+                } else if (start[1] !== end[1]) { // Y轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerWidth, rulerLength);
+                    rulerPosition = [start[0] - rulerWidth/2, start[1] + rulerLength/2, start[2]];
+                    rulerGeometry.rotateZ(Math.PI/2);
+                } else { // Z轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerWidth, rulerLength);
+                    rulerPosition = [start[0], start[1] - rulerWidth/2, start[2] + rulerLength/2];
+                    rulerGeometry.rotateY(Math.PI/2);
+                }
+                
+                // 创建半透明尺子背景材质
+                const rulerMaterial = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide
+                });
+                
+                const ruler = new THREE.Mesh(rulerGeometry, rulerMaterial);
+                ruler.position.set(...rulerPosition);
+                tickGroup.add(ruler);
+                
+                // 为轴添加刻度线和数值标签
+                const tickStep = length / tickCount;
+                const majorTickSize = Math.min(caseLength, caseWidth, caseHeight) * 0.04; // 主刻度线大小
+                const minorTickSize = majorTickSize * 0.6; // 次刻度线大小
+                
+                for (let i = 0; i <= tickCount * 5; i++) {
+                    // 确定刻度线位置 (包括5个小刻度)
+                    const pos = i * (tickStep / 5);
+                    const isMajorTick = i % 5 === 0; // 每5个刻度一个主刻度
+                    const tickSize = isMajorTick ? majorTickSize : minorTickSize;
+                    let tickStart, tickEnd;
+                    
+                    if (start[0] !== end[0]) { // X轴
+                        tickStart = [start[0] + pos, start[1], start[2]];
+                        tickEnd = [start[0] + pos, start[1] - tickSize, start[2]];
+                    } else if (start[1] !== end[1]) { // Y轴
+                        tickStart = [start[0], start[1] + pos, start[2]];
+                        tickEnd = [start[0] - tickSize, start[1] + pos, start[2]];
+                    } else { // Z轴
+                        tickStart = [start[0], start[1], start[2] + pos];
+                        tickEnd = [start[0], start[1] - tickSize, start[2] + pos];
+                    }
+                    
+                    // 创建刻度线材质 - 主刻度线更粗更明显
+                    const tickMaterial = new THREE.LineBasicMaterial({ 
+                        color: color, 
+                        linewidth: isMajorTick ? 2 : 1,
+                        opacity: isMajorTick ? 1 : 0.7,
+                        transparent: true
+                    });
+                    
+                    // 创建刻度线
+                    const tickGeometry = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(...tickStart),
+                        new THREE.Vector3(...tickEnd)
+                    ]);
+                    const tickLine = new THREE.Line(tickGeometry, tickMaterial);
+                    tickGroup.add(tickLine);
+                    
+                    // 只为主刻度添加数值标签
+                    if (isMajorTick) {
+                        const tickValue = Math.round(pos * 10) / 10; // 保留一位小数
+                        
+                        // 确定标签位置
+                        let labelPos;
+                        if (start[0] !== end[0]) { // X轴
+                            labelPos = [start[0] + pos, start[1] - tickSize * 1.5, start[2]];
+                        } else if (start[1] !== end[1]) { // Y轴
+                            labelPos = [start[0] - tickSize * 1.5, start[1] + pos, start[2]];
+                        } else { // Z轴
+                            labelPos = [start[0], start[1] - tickSize * 1.5, start[2] + pos];
+                        }
+                        
+                        // 创建文字精灵
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 64;
+                        canvas.height = 32;
+                        
+                        // 设置文字样式 - 透明背景
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        context.font = 'Bold 20px Arial';
+                        context.fillStyle = color === 0xff0000 ? '#ff0000' : color === 0x00ff00 ? '#00ff00' : '#0000ff';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillText(`${tickValue}`, canvas.width / 2, canvas.height / 2);
+                        
+                        // 创建纹理
+                        const texture = new THREE.CanvasTexture(canvas);
+                        texture.needsUpdate = true;
+                        
+                        // 创建精灵材质 - 透明背景
+                        const spriteMaterial = new THREE.SpriteMaterial({ 
+                            map: texture,
+                            transparent: true
+                        });
+                        
+                        // 创建精灵
+                        const sprite = new THREE.Sprite(spriteMaterial);
+                        sprite.position.set(...labelPos);
+                        
+                        // 根据物体尺寸调整标签大小
+                        const maxDim = Math.max(caseLength, caseWidth, caseHeight);
+                        sprite.scale.set(maxDim * 0.04, maxDim * 0.02, 1);
+                        
+                        tickGroup.add(sprite);
+                    }
+                }
+                
+                // 添加轴标签 (例如 "X轴: 30厘米")
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 200;
+                canvas.height = 64;
+                
+                // 设置文字样式 - 透明背景
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.font = 'Bold 24px Arial';
+                context.fillStyle = color === 0xff0000 ? '#ff0000' : color === 0x00ff00 ? '#00ff00' : '#0000ff';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(`${labelText}: ${length}厘米`, canvas.width / 2, canvas.height / 2);
+                
+                // 创建纹理
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                
+                // 创建精灵材质 - 透明背景
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true 
+                });
+                
+                // 创建精灵并放置在轴末端之外
+                const sprite = new THREE.Sprite(spriteMaterial);
+                let labelPosition;
+                
+                if (start[0] !== end[0]) { // X轴
+                    labelPosition = [end[0] + length * 0.05, end[1], end[2]];
+                } else if (start[1] !== end[1]) { // Y轴
+                    labelPosition = [end[0], end[1] + length * 0.05, end[2]];
+                } else { // Z轴
+                    labelPosition = [end[0], end[1], end[2] + length * 0.05];
+                }
+                
+                sprite.position.set(...labelPosition);
+                
+                // 根据物体尺寸调整标签大小
+                const maxDim = Math.max(caseLength, caseWidth, caseHeight);
+                sprite.scale.set(maxDim * 0.2, maxDim * 0.06, 1);
+                
+                tickGroup.add(sprite);
+                
+                scene.add(tickGroup);
+                return tickGroup;
+            }
+            
+            // 创建各轴刻度和尺寸标注
+            const xAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [caseLength, 0, 0], 
+                caseLength, 
+                10, // 分10个刻度
+                0xff0000, 
+                "X轴"
+            );
+            
+            const yAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [0, caseHeight, 0], 
+                caseHeight, 
+                10, // 分10个刻度
+                0x00ff00, 
+                "Y轴"
+            );
+            
+            const zAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [0, 0, caseWidth], 
+                caseWidth, 
+                10, // 分10个刻度
+                0x0000ff, 
+                "Z轴"
+            );
+            
+            // 添加坐标轴标签
+            const xAxisLabel = document.createElement('div');
+            xAxisLabel.className = 'axis-label';
+            xAxisLabel.textContent = 'X轴';
+            xAxisLabel.style.position = 'absolute';
+            xAxisLabel.style.color = '#ff0000';
+            xAxisLabel.style.fontSize = '14px';
+            xAxisLabel.style.fontWeight = 'bold';
+            xAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.8)';
+            xAxisLabel.style.padding = '3px 6px';
+            xAxisLabel.style.borderRadius = '4px';
+            xAxisLabel.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            xAxisLabel.style.zIndex = '1000';
+            container.appendChild(xAxisLabel);
+
+            const yAxisLabel = document.createElement('div');
+            yAxisLabel.className = 'axis-label';
+            yAxisLabel.textContent = 'Y轴';
+            yAxisLabel.style.position = 'absolute';
+            yAxisLabel.style.color = '#00ff00';
+            yAxisLabel.style.fontSize = '14px';
+            yAxisLabel.style.fontWeight = 'bold';
+            yAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.8)';
+            yAxisLabel.style.padding = '3px 6px';
+            yAxisLabel.style.borderRadius = '4px';
+            yAxisLabel.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            yAxisLabel.style.zIndex = '1000';
+            container.appendChild(yAxisLabel);
+
+            const zAxisLabel = document.createElement('div');
+            zAxisLabel.className = 'axis-label';
+            zAxisLabel.textContent = 'Z轴';
+            zAxisLabel.style.position = 'absolute';
+            zAxisLabel.style.color = '#0000ff';
+            zAxisLabel.style.fontSize = '14px';
+            zAxisLabel.style.fontWeight = 'bold';
+            zAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.8)';
+            zAxisLabel.style.padding = '3px 6px';
+            zAxisLabel.style.borderRadius = '4px';
+            zAxisLabel.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            zAxisLabel.style.zIndex = '1000';
+            container.appendChild(zAxisLabel);
             
             // 添加3D文字标签显示不同区域信息
             const fontLoader = new THREE.FontLoader();
@@ -1554,7 +1965,36 @@
             function animate() {
                 requestAnimationFrame(animate);
                 controls.update();
+                
+                // 更新坐标轴标签位置
+                updateAxisLabels();
+                
                 renderer.render(scene, camera);
+            }
+            
+            // 更新坐标轴标签位置
+            function updateAxisLabels() {
+                // 定义轴的末端点
+                const axisLength = Math.max(caseLength, caseWidth, caseHeight) * 1.2;
+                const axes = [
+                    { end: new THREE.Vector3(axisLength, 0, 0), label: xAxisLabel },
+                    { end: new THREE.Vector3(0, axisLength, 0), label: yAxisLabel },
+                    { end: new THREE.Vector3(0, 0, axisLength), label: zAxisLabel }
+                ];
+                
+                // 计算二维坐标
+                axes.forEach(axis => {
+                    const vector = axis.end.clone();
+                    vector.project(camera);
+                    
+                    // 将归一化的设备坐标(NDC)转换为屏幕坐标
+                    const x = (vector.x * 0.5 + 0.5) * container.clientWidth;
+                    const y = (-(vector.y * 0.5) + 0.5) * container.clientHeight;
+                    
+                    // 更新标签位置
+                    axis.label.style.left = x + 'px';
+                    axis.label.style.top = y + 'px';
+                });
             }
             
             // 开始渲染
@@ -1731,7 +2171,7 @@
                         threeDContainer.id = '3d-container';
                         threeDContainer.style.width = '100%';
                         threeDContainer.style.maxWidth = isMobile ? '100%' : '600px';
-                        threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
+                        threeDContainer.style.height = isMobile ? '450px' : '650px'; // 从350px/400px改为450px/650px
                         threeDContainer.style.margin = '0 auto 30px auto';
                         threeDContainer.style.position = 'relative';
                         threeDContainer.style.backgroundColor = '#f5f5f7';
@@ -1776,7 +2216,7 @@
                     threeDContainer.id = '3d-container';
                     threeDContainer.style.width = '100%';
                     threeDContainer.style.maxWidth = isMobile ? '100%' : '600px';
-                    threeDContainer.style.height = isMobile ? '350px' : '400px'; // 增加手机端3D视图高度
+                    threeDContainer.style.height = isMobile ? '450px' : '650px'; // 从350px/400px改为450px/650px
                     threeDContainer.style.margin = '0 auto 30px auto';
                     threeDContainer.style.position = 'relative';
                     threeDContainer.style.backgroundColor = '#ffffff';
@@ -1803,7 +2243,7 @@
                     const threeDCanvas = document.createElement('canvas');
                     threeDCanvas.id = '3d-diagram';
                     threeDCanvas.width = isMobile ? window.innerWidth - 30 : 600;
-                    threeDCanvas.height = isMobile ? 350 : 400; // 匹配容器高度
+                    threeDCanvas.height = isMobile ? 450 : 650; // 更新高度与容器一致
                     threeDCanvas.style.width = '100%';
                     threeDCanvas.style.height = '100%';
                     
@@ -2052,7 +2492,9 @@
                         
                         const errorContainer = document.createElement('div');
                         errorContainer.style.width = '100%';
-                        errorContainer.style.height = isMobile ? '250px' : '300px';
+                        errorContainer.style.maxWidth = isMobile ? '100%' : '600px';
+                        errorContainer.style.height = isMobile ? '450px' : '650px'; // 更新错误容器高度
+                        errorContainer.style.margin = '0 auto 30px auto';
                         errorContainer.style.backgroundColor = '#ffefef';
                         errorContainer.style.borderRadius = '12px';
                         errorContainer.style.display = 'flex';
@@ -2091,7 +2533,7 @@
                 const errorContainer = document.createElement('div');
                 errorContainer.style.width = '100%';
                 errorContainer.style.maxWidth = isMobile ? '100%' : '600px';
-                errorContainer.style.height = isMobile ? '250px' : '300px';
+                errorContainer.style.height = isMobile ? '450px' : '650px'; // 更新错误容器高度
                 errorContainer.style.margin = '0 auto 30px auto';
                 errorContainer.style.backgroundColor = '#ffefef';
                 errorContainer.style.borderRadius = '12px';
@@ -2189,205 +2631,508 @@
 
         // 添加尺寸标注功能
         function addDimensionLabels() {
-            // 添加更明显的坐标轴
-            const axesHelper = new THREE.AxesHelper(Math.max(caseLength, caseWidth, caseHeight) * 1.2);
-            // 增加坐标轴线宽
-            const axesMaterial = axesHelper.material;
-            axesMaterial.linewidth = 3; // 尝试增加线宽，但注意WebGL限制
-            scene.add(axesHelper);
-            
-            // 添加坐标轴标签
-            const xAxisLabel = document.createElement('div');
-            xAxisLabel.className = 'axis-label';
-            xAxisLabel.textContent = 'X轴';
-            xAxisLabel.style.position = 'absolute';
-            xAxisLabel.style.color = '#ff0000';
-            xAxisLabel.style.fontSize = '14px';
-            xAxisLabel.style.fontWeight = 'bold';
-            xAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.7)';
-            xAxisLabel.style.padding = '3px 6px';
-            xAxisLabel.style.borderRadius = '4px';
-            container.appendChild(xAxisLabel);
-            
-            const yAxisLabel = document.createElement('div');
-            yAxisLabel.className = 'axis-label';
-            yAxisLabel.textContent = 'Y轴';
-            yAxisLabel.style.position = 'absolute';
-            yAxisLabel.style.color = '#00ff00';
-            yAxisLabel.style.fontSize = '14px';
-            yAxisLabel.style.fontWeight = 'bold';
-            yAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.7)';
-            yAxisLabel.style.padding = '3px 6px';
-            yAxisLabel.style.borderRadius = '4px';
-            container.appendChild(yAxisLabel);
-            
-            const zAxisLabel = document.createElement('div');
-            zAxisLabel.className = 'axis-label';
-            zAxisLabel.textContent = 'Z轴';
-            zAxisLabel.style.position = 'absolute';
-            zAxisLabel.style.color = '#0000ff';
-            zAxisLabel.style.fontSize = '14px';
-            zAxisLabel.style.fontWeight = 'bold';
-            zAxisLabel.style.backgroundColor = 'rgba(255,255,255,0.7)';
-            zAxisLabel.style.padding = '3px 6px';
-            zAxisLabel.style.borderRadius = '4px';
-            container.appendChild(zAxisLabel);
-
-            // 添加X轴尺寸标注
-            const xDimensionLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, -0.2, 0),
-                    new THREE.Vector3(caseLength, -0.2, 0)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 3 })
-            );
-            scene.add(xDimensionLine);
-            
-            // 添加垂直延伸线
-            const xStartLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, -0.5, 0),
-                    new THREE.Vector3(0, -0.2, 0)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 2 })
-            );
-            scene.add(xStartLine);
-            
-            const xEndLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(caseLength, -0.5, 0),
-                    new THREE.Vector3(caseLength, -0.2, 0)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0xff0000 })
-            );
-            scene.add(xEndLine);
-            
-            // 添加X轴尺寸文本
-            const xTextDiv = document.createElement('div');
-            xTextDiv.className = 'dimension-label';
-            xTextDiv.textContent = `${caseLength} cm`;
-            xTextDiv.style.position = 'absolute';
-            xTextDiv.style.color = '#ff0000';
-            xTextDiv.style.fontSize = '14px'; // 增大字体
-            xTextDiv.style.fontWeight = 'bold';
-            xTextDiv.style.backgroundColor = 'rgba(255,255,255,0.8)'; // 提高背景不透明度
-            xTextDiv.style.padding = '3px 6px'; // 增大内边距
-            xTextDiv.style.borderRadius = '4px';
-            xTextDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)'; // 添加阴影
-            container.appendChild(xTextDiv);
-            
-            // Z轴(宽)尺寸标注
-            const zDimensionLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, -0.2, 0),
-                    new THREE.Vector3(0, -0.2, caseWidth)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 3 })
-            );
-            scene.add(zDimensionLine);
-            
-            // 添加垂直延伸线
-            const zStartLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, -0.5, 0),
-                    new THREE.Vector3(0, -0.2, 0)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 })
-            );
-            scene.add(zStartLine);
-            
-            const zEndLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, -0.5, caseWidth),
-                    new THREE.Vector3(0, -0.2, caseWidth)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0x0000ff, linewidth: 2 })
-            );
-            scene.add(zEndLine);
-            
-            // 添加Z轴尺寸文本
-            const zTextDiv = document.createElement('div');
-            zTextDiv.className = 'dimension-label';
-            zTextDiv.textContent = `${caseWidth} cm`;
-            zTextDiv.style.position = 'absolute';
-            zTextDiv.style.color = '#0000ff';
-            zTextDiv.style.fontSize = '14px';
-            zTextDiv.style.fontWeight = 'bold';
-            zTextDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-            zTextDiv.style.padding = '3px 6px';
-            zTextDiv.style.borderRadius = '4px';
-            zTextDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-            container.appendChild(zTextDiv);
-            
-            // Y轴(高)尺寸标注
-            const yDimensionLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(0, 0, 0),
-                    new THREE.Vector3(0, caseHeight, 0)
-                ]),
-                new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: 3 })
-            );
-            scene.add(yDimensionLine);
-            
-            // 添加Y轴尺寸文本
-            const yTextDiv = document.createElement('div');
-            yTextDiv.className = 'dimension-label';
-            yTextDiv.textContent = `${caseHeight} cm`;
-            yTextDiv.style.position = 'absolute';
-            yTextDiv.style.color = '#00ff00';
-            yTextDiv.style.fontSize = '14px';
-            yTextDiv.style.fontWeight = 'bold';
-            yTextDiv.style.backgroundColor = 'rgba(255,255,255,0.8)';
-            yTextDiv.style.padding = '3px 6px';
-            yTextDiv.style.borderRadius = '4px';
-            yTextDiv.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
-            container.appendChild(yTextDiv);
-            
-            // 更新尺寸标注位置
-            function updateLabelPositions() {
-                // 将3D坐标转换为屏幕坐标
-                const xMidPoint = new THREE.Vector3(caseLength/2, -0.3, 0);
-                const zMidPoint = new THREE.Vector3(0, -0.3, caseWidth/2);
-                const yMidPoint = new THREE.Vector3(0, caseHeight/2, 0);
+            // 添加坐标轴刻度和尺寸标注
+            function createAxisWithTicks(start, end, length, tickCount, color, labelText) {
+                const tickGroup = new THREE.Group();
                 
-                xMidPoint.project(camera);
-                zMidPoint.project(camera);
-                yMidPoint.project(camera);
+                // 创建主轴线
+                const mainAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(...start),
+                    new THREE.Vector3(...end)
+                ]);
+                const mainAxisMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+                const mainAxis = new THREE.Line(mainAxisGeometry, mainAxisMaterial);
+                tickGroup.add(mainAxis);
                 
-                // 转换为屏幕坐标
-                const widthHalf = container.clientWidth / 2;
-                const heightHalf = container.clientHeight / 2;
+                // 创建与轴平行的尺子背景
+                const rulerWidth = Math.min(caseLength, caseWidth, caseHeight) * 0.05; // 尺子宽度
+                const rulerLength = length;
+                let rulerGeometry, rulerPosition;
                 
-                const xPosition = {
-                    x: (xMidPoint.x * widthHalf) + widthHalf,
-                    y: -(xMidPoint.y * heightHalf) + heightHalf
-                };
+                if (start[0] !== end[0]) { // X轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerLength, rulerWidth);
+                    rulerPosition = [start[0] + rulerLength/2, start[1] - rulerWidth/2, start[2]];
+                    rulerGeometry.rotateX(-Math.PI/2);
+                } else if (start[1] !== end[1]) { // Y轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerWidth, rulerLength);
+                    rulerPosition = [start[0] - rulerWidth/2, start[1] + rulerLength/2, start[2]];
+                    rulerGeometry.rotateZ(Math.PI/2);
+                } else { // Z轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerWidth, rulerLength);
+                    rulerPosition = [start[0], start[1] - rulerWidth/2, start[2] + rulerLength/2];
+                    rulerGeometry.rotateY(Math.PI/2);
+                }
                 
-                const zPosition = {
-                    x: (zMidPoint.x * widthHalf) + widthHalf,
-                    y: -(zMidPoint.y * heightHalf) + heightHalf
-                };
+                // 创建半透明尺子背景材质
+                const rulerMaterial = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide
+                });
                 
-                const yPosition = {
-                    x: (yMidPoint.x * widthHalf) + widthHalf,
-                    y: -(yMidPoint.y * heightHalf) + heightHalf
-                };
+                const ruler = new THREE.Mesh(rulerGeometry, rulerMaterial);
+                ruler.position.set(...rulerPosition);
+                tickGroup.add(ruler);
                 
-                // 更新标签位置
-                xTextDiv.style.left = `${xPosition.x}px`;
-                xTextDiv.style.top = `${xPosition.y}px`;
-                xTextDiv.style.transform = 'translate(-50%, -50%)';
+                // 为轴添加刻度线和数值标签
+                const tickStep = length / tickCount;
+                const majorTickSize = Math.min(caseLength, caseWidth, caseHeight) * 0.04; // 主刻度线大小
+                const minorTickSize = majorTickSize * 0.6; // 次刻度线大小
                 
-                zTextDiv.style.left = `${zPosition.x}px`;
-                zTextDiv.style.top = `${zPosition.y}px`;
-                zTextDiv.style.transform = 'translate(-50%, -50%)';
+                for (let i = 0; i <= tickCount * 5; i++) {
+                    // 确定刻度线位置 (包括5个小刻度)
+                    const pos = i * (tickStep / 5);
+                    const isMajorTick = i % 5 === 0; // 每5个刻度一个主刻度
+                    const tickSize = isMajorTick ? majorTickSize : minorTickSize;
+                    let tickStart, tickEnd;
+                    
+                    if (start[0] !== end[0]) { // X轴
+                        tickStart = [start[0] + pos, start[1], start[2]];
+                        tickEnd = [start[0] + pos, start[1] - tickSize, start[2]];
+                    } else if (start[1] !== end[1]) { // Y轴
+                        tickStart = [start[0], start[1] + pos, start[2]];
+                        tickEnd = [start[0] - tickSize, start[1] + pos, start[2]];
+                    } else { // Z轴
+                        tickStart = [start[0], start[1], start[2] + pos];
+                        tickEnd = [start[0], start[1] - tickSize, start[2] + pos];
+                    }
+                    
+                    // 创建刻度线材质 - 主刻度线更粗更明显
+                    const tickMaterial = new THREE.LineBasicMaterial({ 
+                        color: color, 
+                        linewidth: isMajorTick ? 2 : 1,
+                        opacity: isMajorTick ? 1 : 0.7,
+                        transparent: true
+                    });
+                    
+                    // 创建刻度线
+                    const tickGeometry = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(...tickStart),
+                        new THREE.Vector3(...tickEnd)
+                    ]);
+                    const tickLine = new THREE.Line(tickGeometry, tickMaterial);
+                    tickGroup.add(tickLine);
+                    
+                    // 只为主刻度添加数值标签
+                    if (isMajorTick) {
+                        const tickValue = Math.round(pos * 10) / 10; // 保留一位小数
+                        
+                        // 确定标签位置
+                        let labelPos;
+                        if (start[0] !== end[0]) { // X轴
+                            labelPos = [start[0] + pos, start[1] - tickSize * 1.5, start[2]];
+                        } else if (start[1] !== end[1]) { // Y轴
+                            labelPos = [start[0] - tickSize * 1.5, start[1] + pos, start[2]];
+                        } else { // Z轴
+                            labelPos = [start[0], start[1] - tickSize * 1.5, start[2] + pos];
+                        }
+                        
+                        // 创建文字精灵
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 64;
+                        canvas.height = 32;
+                        
+                        // 设置文字样式 - 透明背景
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        context.font = 'Bold 20px Arial';
+                        context.fillStyle = color === 0xff0000 ? '#ff0000' : color === 0x00ff00 ? '#00ff00' : '#0000ff';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillText(`${tickValue}`, canvas.width / 2, canvas.height / 2);
+                        
+                        // 创建纹理
+                        const texture = new THREE.CanvasTexture(canvas);
+                        texture.needsUpdate = true;
+                        
+                        // 创建精灵材质 - 透明背景
+                        const spriteMaterial = new THREE.SpriteMaterial({ 
+                            map: texture,
+                            transparent: true
+                        });
+                        
+                        // 创建精灵
+                        const sprite = new THREE.Sprite(spriteMaterial);
+                        sprite.position.set(...labelPos);
+                        
+                        // 根据物体尺寸调整标签大小
+                        const maxDim = Math.max(caseLength, caseWidth, caseHeight);
+                        sprite.scale.set(maxDim * 0.04, maxDim * 0.02, 1);
+                        
+                        tickGroup.add(sprite);
+                    }
+                }
                 
-                yTextDiv.style.left = `${yPosition.x}px`;
-                yTextDiv.style.top = `${yPosition.y}px`;
-                yTextDiv.style.transform = 'translate(-50%, -50%)';
+                // 添加轴标签 (例如 "X轴: 30厘米")
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 200;
+                canvas.height = 64;
+                
+                // 设置文字样式 - 透明背景
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.font = 'Bold 24px Arial';
+                context.fillStyle = color === 0xff0000 ? '#ff0000' : color === 0x00ff00 ? '#00ff00' : '#0000ff';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(`${labelText}: ${length}厘米`, canvas.width / 2, canvas.height / 2);
+                
+                // 创建纹理
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                
+                // 创建精灵材质 - 透明背景
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true 
+                });
+                
+                // 创建精灵并放置在轴末端之外
+                const sprite = new THREE.Sprite(spriteMaterial);
+                let labelPosition;
+                
+                if (start[0] !== end[0]) { // X轴
+                    labelPosition = [end[0] + length * 0.05, end[1], end[2]];
+                } else if (start[1] !== end[1]) { // Y轴
+                    labelPosition = [end[0], end[1] + length * 0.05, end[2]];
+                } else { // Z轴
+                    labelPosition = [end[0], end[1], end[2] + length * 0.05];
+                }
+                
+                sprite.position.set(...labelPosition);
+                
+                // 根据物体尺寸调整标签大小
+                const maxDim = Math.max(caseLength, caseWidth, caseHeight);
+                sprite.scale.set(maxDim * 0.2, maxDim * 0.06, 1);
+                
+                tickGroup.add(sprite);
+                
+                scene.add(tickGroup);
+                return tickGroup;
             }
             
-            // 在每帧渲染时更新标签位置
+            // 创建各轴刻度和尺寸标注
+            const xAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [caseLength, 0, 0], 
+                caseLength, 
+                10, // 分10个刻度
+                0xff0000, 
+                "X轴"
+            );
+            
+            const yAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [0, caseHeight, 0], 
+                caseHeight, 
+                10, // 分10个刻度
+                0x00ff00, 
+                "Y轴"
+            );
+            
+            const zAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [0, 0, caseWidth], 
+                caseWidth, 
+                10, // 分10个刻度
+                0x0000ff, 
+                "Z轴"
+            );
+            
+            // 更新坐标轴标签位置的函数
+            function updateLabelPositions() {
+                // 定义轴的末端点
+                const axisLength = Math.max(caseLength, caseWidth, caseHeight) * 1.2;
+                const axes = [
+                    { end: new THREE.Vector3(axisLength, 0, 0), label: xAxisLabel },
+                    { end: new THREE.Vector3(0, axisLength, 0), label: yAxisLabel },
+                    { end: new THREE.Vector3(0, 0, axisLength), label: zAxisLabel }
+                ];
+                
+                // 计算二维坐标
+                axes.forEach(axis => {
+                    const vector = axis.end.clone();
+                    vector.project(camera);
+                    
+                    // 将归一化的设备坐标(NDC)转换为屏幕坐标
+                    const x = (vector.x * 0.5 + 0.5) * container.clientWidth;
+                    const y = (-(vector.y * 0.5) + 0.5) * container.clientHeight;
+                    
+                    // 更新标签位置
+                    if (axis.label) {
+                        axis.label.style.left = x + 'px';
+                        axis.label.style.top = y + 'px';
+                        
+                        // 根据可见性设置显示/隐藏
+                        const isVisible = (x >= 0 && x <= container.clientWidth &&
+                                        y >= 0 && y <= container.clientHeight &&
+                                        vector.z <= 1);
+                        axis.label.style.display = isVisible ? 'block' : 'none';
+                    }
+                });
+            }
+            
+            return updateLabelPositions;
+        }
+
+        // 创建尺寸标注并获取更新函数
+        const updateDimensionLabels = addDimensionLabels();
+
+        // 修改animate函数，加入标注位置更新
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updateDimensionLabels(); // 更新尺寸标注位置
+            renderer.render(scene, camera);
+        }
+
+        // 在setupRotatable3DMixedView函数中也添加类似的尺寸标注功能
+        // 在animate函数前添加
+        // 添加尺寸标注功能
+        function addMixedDimensionLabels() {
+            // 添加坐标轴刻度和尺寸标注
+            function createAxisWithTicks(start, end, length, tickCount, color, labelText) {
+                const tickGroup = new THREE.Group();
+                
+                // 创建主轴线
+                const mainAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(...start),
+                    new THREE.Vector3(...end)
+                ]);
+                const mainAxisMaterial = new THREE.LineBasicMaterial({ color: color, linewidth: 3 });
+                const mainAxis = new THREE.Line(mainAxisGeometry, mainAxisMaterial);
+                tickGroup.add(mainAxis);
+                
+                // 创建与轴平行的尺子背景
+                const rulerWidth = Math.min(caseLength, caseWidth, caseHeight) * 0.05; // 尺子宽度
+                const rulerLength = length;
+                let rulerGeometry, rulerPosition;
+                
+                if (start[0] !== end[0]) { // X轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerLength, rulerWidth);
+                    rulerPosition = [start[0] + rulerLength/2, start[1] - rulerWidth/2, start[2]];
+                    rulerGeometry.rotateX(-Math.PI/2);
+                } else if (start[1] !== end[1]) { // Y轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerWidth, rulerLength);
+                    rulerPosition = [start[0] - rulerWidth/2, start[1] + rulerLength/2, start[2]];
+                    rulerGeometry.rotateZ(Math.PI/2);
+                } else { // Z轴
+                    rulerGeometry = new THREE.PlaneGeometry(rulerWidth, rulerLength);
+                    rulerPosition = [start[0], start[1] - rulerWidth/2, start[2] + rulerLength/2];
+                    rulerGeometry.rotateY(Math.PI/2);
+                }
+                
+                // 创建半透明尺子背景材质
+                const rulerMaterial = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide
+                });
+                
+                const ruler = new THREE.Mesh(rulerGeometry, rulerMaterial);
+                ruler.position.set(...rulerPosition);
+                tickGroup.add(ruler);
+                
+                // 为轴添加刻度线和数值标签
+                const tickStep = length / tickCount;
+                const majorTickSize = Math.min(caseLength, caseWidth, caseHeight) * 0.04; // 主刻度线大小
+                const minorTickSize = majorTickSize * 0.6; // 次刻度线大小
+                
+                for (let i = 0; i <= tickCount * 5; i++) {
+                    // 确定刻度线位置 (包括5个小刻度)
+                    const pos = i * (tickStep / 5);
+                    const isMajorTick = i % 5 === 0; // 每5个刻度一个主刻度
+                    const tickSize = isMajorTick ? majorTickSize : minorTickSize;
+                    let tickStart, tickEnd;
+                    
+                    if (start[0] !== end[0]) { // X轴
+                        tickStart = [start[0] + pos, start[1], start[2]];
+                        tickEnd = [start[0] + pos, start[1] - tickSize, start[2]];
+                    } else if (start[1] !== end[1]) { // Y轴
+                        tickStart = [start[0], start[1] + pos, start[2]];
+                        tickEnd = [start[0] - tickSize, start[1] + pos, start[2]];
+                    } else { // Z轴
+                        tickStart = [start[0], start[1], start[2] + pos];
+                        tickEnd = [start[0], start[1] - tickSize, start[2] + pos];
+                    }
+                    
+                    // 创建刻度线材质 - 主刻度线更粗更明显
+                    const tickMaterial = new THREE.LineBasicMaterial({ 
+                        color: color, 
+                        linewidth: isMajorTick ? 2 : 1,
+                        opacity: isMajorTick ? 1 : 0.7,
+                        transparent: true
+                    });
+                    
+                    // 创建刻度线
+                    const tickGeometry = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(...tickStart),
+                        new THREE.Vector3(...tickEnd)
+                    ]);
+                    const tickLine = new THREE.Line(tickGeometry, tickMaterial);
+                    tickGroup.add(tickLine);
+                    
+                    // 只为主刻度添加数值标签
+                    if (isMajorTick) {
+                        const tickValue = Math.round(pos * 10) / 10; // 保留一位小数
+                        
+                        // 确定标签位置
+                        let labelPos;
+                        if (start[0] !== end[0]) { // X轴
+                            labelPos = [start[0] + pos, start[1] - tickSize * 1.5, start[2]];
+                        } else if (start[1] !== end[1]) { // Y轴
+                            labelPos = [start[0] - tickSize * 1.5, start[1] + pos, start[2]];
+                        } else { // Z轴
+                            labelPos = [start[0], start[1] - tickSize * 1.5, start[2] + pos];
+                        }
+                        
+                        // 创建文字精灵
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.width = 64;
+                        canvas.height = 32;
+                        
+                        // 设置文字样式 - 透明背景
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        context.font = 'Bold 20px Arial';
+                        context.fillStyle = color === 0xff0000 ? '#ff0000' : color === 0x00ff00 ? '#00ff00' : '#0000ff';
+                        context.textAlign = 'center';
+                        context.textBaseline = 'middle';
+                        context.fillText(`${tickValue}`, canvas.width / 2, canvas.height / 2);
+                        
+                        // 创建纹理
+                        const texture = new THREE.CanvasTexture(canvas);
+                        texture.needsUpdate = true;
+                        
+                        // 创建精灵材质 - 透明背景
+                        const spriteMaterial = new THREE.SpriteMaterial({ 
+                            map: texture,
+                            transparent: true
+                        });
+                        
+                        // 创建精灵
+                        const sprite = new THREE.Sprite(spriteMaterial);
+                        sprite.position.set(...labelPos);
+                        
+                        // 根据物体尺寸调整标签大小
+                        const maxDim = Math.max(caseLength, caseWidth, caseHeight);
+                        sprite.scale.set(maxDim * 0.04, maxDim * 0.02, 1);
+                        
+                        tickGroup.add(sprite);
+                    }
+                }
+                
+                // 添加轴标签 (例如 "X轴: 30厘米")
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = 200;
+                canvas.height = 64;
+                
+                // 设置文字样式 - 透明背景
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.font = 'Bold 24px Arial';
+                context.fillStyle = color === 0xff0000 ? '#ff0000' : color === 0x00ff00 ? '#00ff00' : '#0000ff';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText(`${labelText}: ${length}厘米`, canvas.width / 2, canvas.height / 2);
+                
+                // 创建纹理
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.needsUpdate = true;
+                
+                // 创建精灵材质 - 透明背景
+                const spriteMaterial = new THREE.SpriteMaterial({ 
+                    map: texture,
+                    transparent: true 
+                });
+                
+                // 创建精灵并放置在轴末端之外
+                const sprite = new THREE.Sprite(spriteMaterial);
+                let labelPosition;
+                
+                if (start[0] !== end[0]) { // X轴
+                    labelPosition = [end[0] + length * 0.05, end[1], end[2]];
+                } else if (start[1] !== end[1]) { // Y轴
+                    labelPosition = [end[0], end[1] + length * 0.05, end[2]];
+                } else { // Z轴
+                    labelPosition = [end[0], end[1], end[2] + length * 0.05];
+                }
+                
+                sprite.position.set(...labelPosition);
+                
+                // 根据物体尺寸调整标签大小
+                const maxDim = Math.max(caseLength, caseWidth, caseHeight);
+                sprite.scale.set(maxDim * 0.2, maxDim * 0.06, 1);
+                
+                tickGroup.add(sprite);
+                
+                scene.add(tickGroup);
+                return tickGroup;
+            }
+            
+            // 创建各轴刻度和尺寸标注
+            const xAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [caseLength, 0, 0], 
+                caseLength, 
+                10, // 分10个刻度
+                0xff0000, 
+                "X轴"
+            );
+            
+            const yAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [0, caseHeight, 0], 
+                caseHeight, 
+                10, // 分10个刻度
+                0x00ff00, 
+                "Y轴"
+            );
+            
+            const zAxisTicks = createAxisWithTicks(
+                [0, 0, 0], 
+                [0, 0, caseWidth], 
+                caseWidth, 
+                10, // 分10个刻度
+                0x0000ff, 
+                "Z轴"
+            );
+            
+            // 更新坐标轴标签位置的函数
+            function updateLabelPositions() {
+                // 定义轴的末端点
+                const axisLength = Math.max(caseLength, caseWidth, caseHeight) * 1.2;
+                const axes = [
+                    { end: new THREE.Vector3(axisLength, 0, 0), label: xAxisLabel },
+                    { end: new THREE.Vector3(0, axisLength, 0), label: yAxisLabel },
+                    { end: new THREE.Vector3(0, 0, axisLength), label: zAxisLabel }
+                ];
+                
+                // 计算二维坐标
+                axes.forEach(axis => {
+                    const vector = axis.end.clone();
+                    vector.project(camera);
+                    
+                    // 将归一化的设备坐标(NDC)转换为屏幕坐标
+                    const x = (vector.x * 0.5 + 0.5) * container.clientWidth;
+                    const y = (-(vector.y * 0.5) + 0.5) * container.clientHeight;
+                    
+                    // 更新标签位置
+                    if (axis.label) {
+                        axis.label.style.left = x + 'px';
+                        axis.label.style.top = y + 'px';
+                        
+                        // 根据可见性设置显示/隐藏
+                        const isVisible = (x >= 0 && x <= container.clientWidth &&
+                                        y >= 0 && y <= container.clientHeight &&
+                                        vector.z <= 1);
+                        axis.label.style.display = isVisible ? 'block' : 'none';
+                    }
+                });
+            }
+            
             return updateLabelPositions;
         }
 
@@ -2398,12 +3143,297 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            UpdateMixedDimensionLabels （） ; //更新尺寸标注位置
-            渲染器。渲染（场景，相机）；
+            updateMixedDimensionLabels(); // 更新尺寸标注位置
+            renderer.render(scene, camera);
         }
 
-        //开始渲染
-        Animate （） ;
-    </script>
-</body>
-</html>
+        // 添加三视图相关的变量
+        let frontCamera, topCamera, leftCamera, rightCamera;
+        let frontRenderer, topRenderer, leftRenderer, rightRenderer;
+        
+        // 初始化三视图
+        function initOrthographicViews() {
+            console.log('初始化三视图...');
+            try {
+                // 创建正交相机
+                const aspect = 1;
+                const frustumSize = 100;
+                
+                // 创建前视图相机
+                const frontCamera = new THREE.OrthographicCamera(
+                    frustumSize * aspect / -2,
+                    frustumSize * aspect / 2,
+                    frustumSize / 2,
+                    frustumSize / -2,
+                    1,
+                    1000
+                );
+                frontCamera.position.set(0, 0, 100);
+                frontCamera.lookAt(0, 0, 0);
+                
+                // 创建前视图渲染器
+                const frontRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('frontView'), antialias: true });
+                frontRenderer.setSize(200, 200);
+                frontRenderer.setClearColor(0xffffff, 1);
+                
+                // 创建俯视图相机
+                const topCamera = new THREE.OrthographicCamera(
+                    frustumSize * aspect / -2,
+                    frustumSize * aspect / 2,
+                    frustumSize / 2,
+                    frustumSize / -2,
+                    1,
+                    1000
+                );
+                topCamera.position.set(0, 100, 0);
+                topCamera.lookAt(0, 0, 0);
+                
+                // 创建俯视图渲染器
+                const topRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('topView'), antialias: true });
+                topRenderer.setSize(200, 200);
+                topRenderer.setClearColor(0xffffff, 1);
+                
+                // 创建左视图相机
+                const leftCamera = new THREE.OrthographicCamera(
+                    frustumSize * aspect / -2,
+                    frustumSize * aspect / 2,
+                    frustumSize / 2,
+                    frustumSize / -2,
+                    1,
+                    1000
+                );
+                leftCamera.position.set(-100, 0, 0);
+                leftCamera.lookAt(0, 0, 0);
+                
+                // 创建左视图渲染器
+                const leftRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('leftView'), antialias: true });
+                leftRenderer.setSize(200, 200);
+                leftRenderer.setClearColor(0xffffff, 1);
+                
+                // 创建右视图相机
+                const rightCamera = new THREE.OrthographicCamera(
+                    frustumSize * aspect / -2,
+                    frustumSize * aspect / 2,
+                    frustumSize / 2,
+                    frustumSize / -2,
+                    1,
+                    1000
+                );
+                rightCamera.position.set(100, 0, 0);
+                rightCamera.lookAt(0, 0, 0);
+                
+                // 创建右视图渲染器
+                const rightRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('rightView'), antialias: true });
+                rightRenderer.setSize(200, 200);
+                rightRenderer.setClearColor(0xffffff, 1);
+
+                // 存储相机和渲染器
+                window.orthographicCameras = {
+                    front: frontCamera,
+                    top: topCamera,
+                    left: leftCamera,
+                    right: rightCamera
+                };
+                window.orthographicRenderers = {
+                    front: frontRenderer,
+                    top: topRenderer,
+                    left: leftRenderer,
+                    right: rightRenderer
+                };
+
+                console.log('三视图初始化完成');
+            } catch (error) {
+                console.error('初始化三视图时出错:', error);
+            }
+        }
+        
+        // 更新三视图
+        function updateOrthographicViews() {
+            try {
+                if (!scene || !window.orthographicCameras || !window.orthographicRenderers) {
+                    console.log('三视图组件未完全初始化');
+                    return;
+                }
+                
+                // 更新每个视图
+                window.orthographicRenderers.front.render(scene, window.orthographicCameras.front);
+                window.orthographicRenderers.top.render(scene, window.orthographicCameras.top);
+                window.orthographicRenderers.left.render(scene, window.orthographicCameras.left);
+                window.orthographicRenderers.right.render(scene, window.orthographicCameras.right);
+            } catch (error) {
+                console.error('更新三视图时出错:', error);
+            }
+        }
+        
+        // 修改现有的animate函数
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) {
+                controls.update();
+            }
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+            if (window.orthographicRenderers) {
+                updateOrthographicViews();
+            }
+        }
+        
+        // 在初始化函数中调用initOrthographicViews
+        function init() {
+            console.log('初始化3D视图...');
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff);
+
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(100, 100, 100);
+            camera.lookAt(0, 0, 0);
+
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('mainCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0xffffff, 1);
+
+            // 创建控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 50;
+            controls.maxDistance = 200;
+            controls.maxPolarAngle = Math.PI / 2;
+
+            // 添加坐标轴
+            const axesHelper = new THREE.AxesHelper(50);
+            scene.add(axesHelper);
+
+            // 添加网格
+            const gridHelper = new THREE.GridHelper(100, 20);
+            scene.add(gridHelper);
+
+            // 初始化三视图
+            initOrthographicViews();
+
+            // 开始动画循环
+            animate();
+            console.log('3D视图初始化完成');
+        }
+        
+        // 初始化三视图
+        function initOrthographicViews() {
+            console.log('初始化三视图...');
+            // 创建正交相机
+            const aspect = 1;
+            const frustumSize = 100;
+            
+            const frontCamera = new THREE.OrthographicCamera(
+                frustumSize * aspect / -2,
+                frustumSize * aspect / 2,
+                frustumSize / 2,
+                frustumSize / -2,
+                1,
+                1000
+            );
+            frontCamera.position.set(0, 0, 100);
+            frontCamera.lookAt(0, 0, 0);
+            
+            const topCamera = new THREE.OrthographicCamera(
+                frustumSize * aspect / -2,
+                frustumSize * aspect / 2,
+                frustumSize / 2,
+                frustumSize / -2,
+                1,
+                1000
+            );
+            topCamera.position.set(0, 100, 0);
+            topCamera.lookAt(0, 0, 0);
+            
+            const leftCamera = new THREE.OrthographicCamera(
+                frustumSize * aspect / -2,
+                frustumSize * aspect / 2,
+                frustumSize / 2,
+                frustumSize / -2,
+                1,
+                1000
+            );
+            leftCamera.position.set(-100, 0, 0);
+            leftCamera.lookAt(0, 0, 0);
+            
+            const rightCamera = new THREE.OrthographicCamera(
+                frustumSize * aspect / -2,
+                frustumSize * aspect / 2,
+                frustumSize / 2,
+                frustumSize / -2,
+                1,
+                1000
+            );
+            rightCamera.position.set(100, 0, 0);
+            rightCamera.lookAt(0, 0, 0);
+            
+            // 创建渲染器
+            const frontRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('frontView'), antialias: true });
+            const topRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('topView'), antialias: true });
+            const leftRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('leftView'), antialias: true });
+            const rightRenderer = new THREE.WebGLRenderer({ canvas: document.getElementById('rightView'), antialias: true });
+            
+            // 设置渲染器大小
+            const size = 200;
+            Frontrenderer。设置（尺寸，大小） ;
+            TopRenderer。设置（尺寸，大小） ;
+            leftrenderer。设置（尺寸，大小） ;
+            rightRenderer.setSize(size, size);
+
+            // 设置背景色
+            frontRenderer.setClearColor(0xffffff, 1);
+            topRenderer.setClearColor(0xffffff, 1);
+            leftRenderer.setClearColor(0xffffff, 1);
+            rightRenderer.setClearColor(0xffffff, 1);
+
+            // 存储相机和渲染器
+            window.orthographicCameras = {
+                front: frontCamera,
+                顶部：topcamera，，
+                左：LeftCamera，，
+                右：右卡米拉
+            } ;
+            窗户。矫形器= {
+                正面：frontrenderer，，
+                顶部：toprenderer，，
+                左：leftrenderer，，
+                右：Rightrenderer
+            } ;
+
+            安慰。log （'三视图初始化完成'  ） ;
+        }
+        
+        //更新三视图
+        函数（updateorthrophicViews ）（（）{
+            如果（ ！
+            
+            窗户。校准人。正面。渲染（场景，窗口。矫形车场。正面）；
+            窗户。校准人。顶部。渲染（场景，窗口。正骨库胺。顶部）；
+            窗户。校准人。左边。渲染（场景，窗口。，窗口。
+            窗户。校准人。正确的。渲染（场景，窗口。，窗口。
+        }
+        
+        //修改窗口大小调整函数
+        窗户。addeventListener （'ressize' ，onwindowresize，false ） ;
+        函数（onwindowresize ）（（（（）） {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // 更新三视图大小
+            const size = 200;
+            frontRenderer.setSize(size, size);
+            topRenderer.setSize(size, size);
+            leftrenderer。设置（尺寸，大小） ;
+            Rightrenderer。设置（尺寸，大小） ;
+        }
+        
+        init （） ;
+    </ script >
+</ body >
+</ html >
